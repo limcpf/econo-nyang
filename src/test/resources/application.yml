@@ -1,0 +1,43 @@
+spring:
+  profiles:
+    active: test
+  
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  
+  flyway:
+    enabled: false
+  
+  batch:
+    job:
+      enabled: false
+    initialize-schema: always
+
+logging:
+  level:
+    com.yourco.econdigest: DEBUG
+    org.springframework.batch: DEBUG
+
+app:
+  timezone: Asia/Seoul
+  digest:
+    sendAt: "07:30"
+    maxArticles: 3
+  openai:
+    apiBase: "https://api.openai.com/v1"
+    apiKey: "test-key"
+    modelSmall: "gpt-4o-mini"
+    modelMain: "gpt-4o"
+    requestTimeoutSec: 10
+    enableBatch: false
+    maxInputTokens: 1000
+    maxOutputTokens: 500
