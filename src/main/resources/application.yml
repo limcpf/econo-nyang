@@ -43,6 +43,66 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
+# RSS 소스 설정
+sources:
+  - name: "한국경제"
+    code: "hankyung"
+    url: "https://www.hankyung.com/feed/economy"
+    weight: 1.0
+    enabled: true
+    timeout: 10000
+    retryCount: 3
+    description: "한국경제 경제 섹션 RSS"
+  - name: "매일경제"
+    code: "maeil"
+    url: "https://www.mk.co.kr/rss/30000001/"
+    weight: 1.0
+    enabled: true
+    timeout: 10000
+    retryCount: 3
+    description: "매일경제 경제 섹션 RSS"
+  - name: "Google 뉴스 - 한국경제"
+    code: "google_kr_econ"
+    url: "https://news.google.com/rss/search?q=%ED%95%9C%EA%B5%AD%EA%B2%BD%EC%A0%9C&hl=ko&gl=KR&ceid=KR:ko"
+    weight: 0.8
+    enabled: true
+    timeout: 15000
+    retryCount: 2
+    description: "Google 뉴스 한국경제 검색 결과"
+
+global:
+  userAgent: "EconDigest/1.0"
+  defaultTimeout: 10000
+  defaultRetryCount: 3
+  maxArticlesPerSource: 20
+  minPublishInterval: 3600
+
+filters:
+  includeKeywords:
+    - "경제"
+    - "금리"
+    - "투자"
+    - "주식"
+    - "부동산"
+    - "금융"
+    - "기업"
+    - "증시"
+    - "환율"
+    - "인플레이션"
+    - "GDP"
+    - "수출"
+    - "수입"
+    - "무역"
+    - "산업"
+  excludeKeywords:
+    - "스포츠"
+    - "연예"
+    - "게임"
+    - "날씨"
+    - "교통"
+    - "사건"
+    - "사고"
+
 app:
   timezone: Asia/Seoul
   digest:

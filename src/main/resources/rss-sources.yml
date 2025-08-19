@@ -1,0 +1,87 @@
+# RSS 소스 설정 파일
+# 경제 뉴스 RSS 피드 목록과 가중치 설정
+
+sources:
+  # 한국경제신문
+  - name: "한국경제"
+    code: "hankyung"
+    url: "https://www.hankyung.com/feed/economy"
+    weight: 1.0
+    enabled: true
+    timeout: 10000
+    retryCount: 3
+    description: "한국경제신문 경제 뉴스"
+    
+  # 매일경제
+  - name: "매일경제"
+    code: "maeil"
+    url: "https://www.mk.co.kr/rss/30000001/"
+    weight: 1.0
+    enabled: true
+    timeout: 10000
+    retryCount: 3
+    description: "매일경제신문 경제 뉴스"
+    
+  # 연합뉴스 경제
+  - name: "연합뉴스"
+    code: "yonhap"
+    url: "https://www.yna.co.kr/rss/economy.xml"
+    weight: 0.9
+    enabled: true
+    timeout: 10000
+    retryCount: 3
+    description: "연합뉴스 경제 뉴스"
+    
+  # 조선비즈
+  - name: "조선비즈"
+    code: "chosunbiz"
+    url: "https://biz.chosun.com/rss/economy.xml"
+    weight: 0.8
+    enabled: true
+    timeout: 10000
+    retryCount: 3
+    description: "조선비즈 경제 뉴스"
+    
+  # Google 뉴스 - 한국 경제
+  - name: "Google 뉴스 경제"
+    code: "google_kr_econ"
+    url: "https://news.google.com/rss/topics/CAAqKggKIiRDQkFTRlFvSUwyMHZNRFp1ZEdvU0JXdHZMUzFCRGlnQVAB?hl=ko&gl=KR&ceid=KR%3Ako"
+    weight: 0.7
+    enabled: true
+    timeout: 15000
+    retryCount: 2
+    description: "Google 뉴스 한국 경제 토픽"
+
+# 전역 설정
+global:
+  userAgent: "EconDigest/1.0 (+https://github.com/yourco/econdigest)"
+  defaultTimeout: 10000
+  defaultRetryCount: 3
+  maxArticlesPerSource: 20
+  minPublishInterval: 3600  # 최소 1시간 간격의 기사만 수집
+  
+# 필터링 설정
+filters:
+  # 제외할 키워드 (광고, 스포츠, 연예 등)
+  excludeKeywords:
+    - "광고"
+    - "스포츠"
+    - "연예"
+    - "게임"
+    - "맛집"
+    - "여행"
+  
+  # 포함해야 할 키워드 (경제 관련)
+  includeKeywords:
+    - "경제"
+    - "금리"
+    - "주가"
+    - "환율"
+    - "GDP"
+    - "인플레이션"
+    - "기업"
+    - "투자"
+    - "부동산"
+    - "금융"
+    - "무역"
+    - "산업"

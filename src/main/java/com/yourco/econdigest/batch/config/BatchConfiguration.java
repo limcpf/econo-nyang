@@ -1,6 +1,10 @@
 package com.yourco.econdigest.batch.config;
 
 import com.yourco.econdigest.batch.util.ExecutionContextUtil;
+import com.yourco.econdigest.config.RssSourcesConfig;
+import com.yourco.econdigest.dto.ArticleDto;
+import com.yourco.econdigest.service.RssFeedService;
+import com.yourco.econdigest.service.ContentExtractionService;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -11,6 +15,8 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 /**
  * Spring Batch 설정 클래스
@@ -28,6 +34,15 @@ public class BatchConfiguration {
 
     @Autowired
     private EconDigestJobParametersValidator jobParametersValidator;
+
+    @Autowired
+    private RssFeedService rssFeedService;
+
+    @Autowired
+    private RssSourcesConfig rssSourcesConfig;
+    
+    @Autowired
+    private ContentExtractionService contentExtractionService;
 
     /**
      * ECON_DAILY_DIGEST Job 정의
@@ -78,18 +93,59 @@ public class BatchConfiguration {
                     System.out.println("Target Date: " + targetDate);
                     System.out.println("Max Articles: " + maxArticles);
                     
-                    // TODO: RSS 피드 수집 로직 구현 (Task 4에서)
-                    // 임시로 가상의 데이터 생성
-                    int fetchedCount = Math.min(maxArticles, 8); // 가상의 수집된 기사 수
-                    
-                    // 결과를 ExecutionContext에 저장
-                    ExecutionContextUtil.putToJobContext(
-                            chunkContext.getStepContext().getStepExecution(),
-                            ExecutionContextUtil.FETCHED_ARTICLES_COUNT,
-                            fetchedCount
-                    );
-                    
-                    System.out.println("S1_FETCH: RSS 피드 수집 완료 (stub) - " + fetchedCount + "개 기사 수집");
+                    try {
+                        // RSS 소스에서 기사 수집
+                        List<ArticleDto> articles = rssFeedService.fetchAllArticles(
+                                rssSourcesConfig.getSources(), maxArticles);
+                        
+                        // 키워드 필터링 적용
+                        List<ArticleDto> filteredArticles = rssFeedService.applyFilters(
+                                articles, rssSourcesConfig.getFilters());
+                        
+                        int fetchedCount = filteredArticles.size();
+                        
+                        // 결과를 ExecutionContext에 저장
+                        ExecutionContextUtil.putToJobContext(
+                                chunkContext.getStepContext().getStepExecution(),
+                                ExecutionContextUtil.FETCHED_ARTICLES_COUNT,
+                                fetchedCount
+                        );
+                        
+                        // 수집된 기사 목록도 저장 (다음 Step에서 사용)
+                        ExecutionContextUtil.putToJobContext(
+                                chunkContext.getStepContext().getStepExecution(),
+                                "fetchedArticles",
+                                filteredArticles
+                        );
+                        
+                        System.out.println("S1_FETCH: RSS 피드 수집 완료 - " + fetchedCount + "개 기사 수집");
+                        
+                        // 수집된 기사 목록 출력 (처음 5개만)
+                        int displayCount = Math.min(5, filteredArticles.size());
+                        for (int i = 0; i < displayCount; i++) {
+                            ArticleDto article = filteredArticles.get(i);
+                            System.out.println("  " + (i + 1) + ". [" + article.getSource() + "] " + article.getTitle());
+                        }
+                        if (filteredArticles.size() > 5) {
+                            System.out.println("  ... 외 " + (filteredArticles.size() - 5) + "개 기사");
+                        }
+                        
+                    } catch (Exception e) {
+                        System.err.println("RSS 피드 수집 중 오류 발생: " + e.getMessage());
+                        e.printStackTrace();
+                        
+                        // 오류 발생 시에도 0개로 설정하여 다음 Step이 계속 진행되도록 함
+                        ExecutionContextUtil.putToJobContext(
+                                chunkContext.getStepContext().getStepExecution(),
+                                ExecutionContextUtil.FETCHED_ARTICLES_COUNT,
+                                0
+                        );
+                        ExecutionContextUtil.putToJobContext(
+                                chunkContext.getStepContext().getStepExecution(),
+                                ExecutionContextUtil.ERROR_COUNT,
+                                1
+                        );
+                    }
                     
                     return RepeatStatus.FINISHED;
                 })
@@ -112,20 +168,105 @@ public class BatchConfiguration {
                             0
                     );
                     
-                    System.out.println("이전 단계에서 수집된 기사 수: " + fetchedCount);
-                    
-                    // TODO: 본문 추출 로직 구현 (Task 5에서)
-                    // 임시로 가상의 처리 결과 생성 (일부 기사는 추출 실패할 수 있음)
-                    int extractedCount = (int) (fetchedCount * 0.8); // 80% 성공률 가정
-                    
-                    // 결과를 ExecutionContext에 저장
-                    ExecutionContextUtil.putToJobContext(
+                    // 이전 Step에서 수집된 기사 목록 가져오기
+                    @SuppressWarnings("unchecked")
+                    List<ArticleDto> fetchedArticles = (List<ArticleDto>) ExecutionContextUtil.getFromJobContext(
                             chunkContext.getStepContext().getStepExecution(),
-                            ExecutionContextUtil.EXTRACTED_ARTICLES_COUNT,
-                            extractedCount
+                            "fetchedArticles",
+                            List.class
                     );
                     
-                    System.out.println("S2_EXTRACT: 본문 추출 및 정제 완료 (stub) - " + extractedCount + "개 기사 추출");
+                    System.out.println("이전 단계에서 수집된 기사 수: " + fetchedCount);
+                    if (fetchedArticles == null || fetchedArticles.isEmpty()) {
+                        System.out.println("추출할 기사가 없습니다.");
+                        ExecutionContextUtil.putToJobContext(
+                                chunkContext.getStepContext().getStepExecution(),
+                                ExecutionContextUtil.EXTRACTED_ARTICLES_COUNT,
+                                0
+                        );
+                        return RepeatStatus.FINISHED;
+                    }
+                    
+                    System.out.println("본문 추출 시작: " + fetchedArticles.size() + "개 기사");
+                    
+                    try {
+                        // ContentExtractionService를 사용하여 본문 추출
+                        List<ArticleDto> extractedArticles = contentExtractionService.extractContents(fetchedArticles);
+                        
+                        // 추출 성공한 기사 수 계산
+                        int extractedCount = (int) extractedArticles.stream()
+                                .mapToLong(article -> article.isExtractSuccess() ? 1 : 0)
+                                .sum();
+                        
+                        // 추출 성공률 계산
+                        double successRate = contentExtractionService.calculateSuccessRate(extractedArticles);
+                        
+                        // 결과를 ExecutionContext에 저장
+                        ExecutionContextUtil.putToJobContext(
+                                chunkContext.getStepContext().getStepExecution(),
+                                ExecutionContextUtil.EXTRACTED_ARTICLES_COUNT,
+                                extractedCount
+                        );
+                        
+                        // 추출된 기사 목록도 저장 (다음 Step에서 사용)
+                        ExecutionContextUtil.putToJobContext(
+                                chunkContext.getStepContext().getStepExecution(),
+                                "extractedArticles",
+                                extractedArticles
+                        );
+                        
+                        System.out.println("S2_EXTRACT: 본문 추출 완료 - " + extractedCount + "/" + fetchedArticles.size() + 
+                                         "개 기사 추출 성공 (성공률: " + String.format("%.1f", successRate * 100) + "%)");
+                        
+                        // 추출 성공한 기사 목록 출력 (처음 3개만)
+                        int displayCount = Math.min(3, extractedCount);
+                        int successShown = 0;
+                        for (ArticleDto article : extractedArticles) {
+                            if (article.isExtractSuccess() && successShown < displayCount) {
+                                String contentPreview = article.getContent();
+                                if (contentPreview != null && contentPreview.length() > 100) {
+                                    contentPreview = contentPreview.substring(0, 100) + "...";
+                                }
+                                System.out.println("  " + (successShown + 1) + ". [" + article.getSource() + "] " + 
+                                                 article.getTitle() + " - 본문 " + 
+                                                 (article.getContent() != null ? article.getContent().length() : 0) + "자");
+                                successShown++;
+                            }
+                        }
+                        
+                        // 추출 실패한 기사가 있으면 오류 정보 출력
+                        int failedCount = fetchedArticles.size() - extractedCount;
+                        if (failedCount > 0) {
+                            System.out.println("추출 실패한 기사 " + failedCount + "개:");
+                            int failedShown = 0;
+                            for (ArticleDto article : extractedArticles) {
+                                if (!article.isExtractSuccess() && failedShown < 3) {
+                                    System.out.println("  - [" + article.getSource() + "] " + article.getTitle() + 
+                                                     " (오류: " + article.getExtractError() + ")");
+                                    failedShown++;
+                                }
+                            }
+                            if (failedCount > 3) {
+                                System.out.println("  ... 외 " + (failedCount - 3) + "개 실패");
+                            }
+                        }
+                        
+                    } catch (Exception e) {
+                        System.err.println("본문 추출 중 오류 발생: " + e.getMessage());
+                        e.printStackTrace();
+                        
+                        // 오류 발생 시에도 0개로 설정하여 다음 Step이 계속 진행되도록 함
+                        ExecutionContextUtil.putToJobContext(
+                                chunkContext.getStepContext().getStepExecution(),
+                                ExecutionContextUtil.EXTRACTED_ARTICLES_COUNT,
+                                0
+                        );
+                        ExecutionContextUtil.putToJobContext(
+                                chunkContext.getStepContext().getStepExecution(),
+                                ExecutionContextUtil.ERROR_COUNT,
+                                1
+                        );
+                    }
                     
                     return RepeatStatus.FINISHED;
                 })
@@ -155,8 +296,30 @@ public class BatchConfiguration {
                             0
                     );
                     
+                    // 이전 Step에서 추출된 기사 목록 가져오기
+                    @SuppressWarnings("unchecked")
+                    List<ArticleDto> extractedArticles = (List<ArticleDto>) ExecutionContextUtil.getFromJobContext(
+                            chunkContext.getStepContext().getStepExecution(),
+                            "extractedArticles",
+                            List.class
+                    );
+                    
                     System.out.println("Use LLM: " + useLLM);
                     System.out.println("이전 단계에서 추출된 기사 수: " + extractedCount);
+                    
+                    if (extractedArticles != null && !extractedArticles.isEmpty()) {
+                        System.out.println("추출된 기사 중 성공한 기사 목록 확인:");
+                        int displayCount = Math.min(3, extractedCount);
+                        int successShown = 0;
+                        for (ArticleDto article : extractedArticles) {
+                            if (article.isExtractSuccess() && successShown < displayCount) {
+                                System.out.println("  " + (successShown + 1) + ". [" + article.getSource() + "] " + 
+                                                 article.getTitle() + " (본문 " + 
+                                                 (article.getContent() != null ? article.getContent().length() : 0) + "자)");
+                                successShown++;
+                            }
+                        }
+                    }
                     
                     // TODO: AI 요약 로직 구현 (Task 7에서)
                     // 임시로 가상의 처리 결과 생성
