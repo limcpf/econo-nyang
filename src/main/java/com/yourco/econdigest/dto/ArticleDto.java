@@ -23,6 +23,17 @@ public class ArticleDto {
     private String extractError;  // 추출 실패 시 오류 메시지
     private boolean extractSuccess;  // 추출 성공 여부
     
+    // AI 요약 관련 필드
+    private String aiSummary;     // AI 생성 요약
+    private String aiAnalysis;    // AI 생성 경제 분석
+    private Integer importanceScore;  // 중요도 점수 (1-10)
+    private String marketImpact;  // 시장 영향도
+    private String investorInterest;  // 투자자 관심도
+    private Integer confidenceScore;  // 신뢰도 점수 (1-10)
+    private LocalDateTime summarizedAt;  // AI 요약 생성 시간
+    private String summarizeError;    // 요약 실패 시 오류 메시지
+    private boolean summarizeSuccess; // 요약 성공 여부
+    
     // 기본 생성자
     public ArticleDto() {
         this.fetchedAt = LocalDateTime.now();
@@ -136,6 +147,79 @@ public class ArticleDto {
     
     public void setExtractSuccess(boolean extractSuccess) {
         this.extractSuccess = extractSuccess;
+    }
+    
+    // AI 요약 필드들의 Getters and Setters
+    public String getAiSummary() {
+        return aiSummary;
+    }
+    
+    public void setAiSummary(String aiSummary) {
+        this.aiSummary = aiSummary;
+    }
+    
+    public String getAiAnalysis() {
+        return aiAnalysis;
+    }
+    
+    public void setAiAnalysis(String aiAnalysis) {
+        this.aiAnalysis = aiAnalysis;
+    }
+    
+    public Integer getImportanceScore() {
+        return importanceScore;
+    }
+    
+    public void setImportanceScore(Integer importanceScore) {
+        this.importanceScore = importanceScore;
+    }
+    
+    public String getMarketImpact() {
+        return marketImpact;
+    }
+    
+    public void setMarketImpact(String marketImpact) {
+        this.marketImpact = marketImpact;
+    }
+    
+    public String getInvestorInterest() {
+        return investorInterest;
+    }
+    
+    public void setInvestorInterest(String investorInterest) {
+        this.investorInterest = investorInterest;
+    }
+    
+    public Integer getConfidenceScore() {
+        return confidenceScore;
+    }
+    
+    public void setConfidenceScore(Integer confidenceScore) {
+        this.confidenceScore = confidenceScore;
+    }
+    
+    public LocalDateTime getSummarizedAt() {
+        return summarizedAt;
+    }
+    
+    public void setSummarizedAt(LocalDateTime summarizedAt) {
+        this.summarizedAt = summarizedAt;
+    }
+    
+    public String getSummarizeError() {
+        return summarizeError;
+    }
+    
+    public void setSummarizeError(String summarizeError) {
+        this.summarizeError = summarizeError;
+    }
+    
+    public boolean isSummarizeSuccess() {
+        return summarizeSuccess;
+    }
+    
+    public void setSummarizeSuccess(boolean summarizeSuccess) {
+        this.summarizeSuccess = summarizeSuccess;
     }
     
     /**

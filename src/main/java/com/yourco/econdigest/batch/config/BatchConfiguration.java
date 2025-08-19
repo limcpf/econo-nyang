@@ -5,6 +5,8 @@ import com.yourco.econdigest.config.RssSourcesConfig;
 import com.yourco.econdigest.dto.ArticleDto;
 import com.yourco.econdigest.service.RssFeedService;
 import com.yourco.econdigest.service.ContentExtractionService;
+import com.yourco.econdigest.openai.service.OpenAiClient;
+import com.yourco.econdigest.openai.dto.EconomicSummaryResponse;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -43,6 +45,9 @@ public class BatchConfiguration {
     
     @Autowired
     private ContentExtractionService contentExtractionService;
+
+    @Autowired
+    private OpenAiClient openAiClient;
 
     /**
      * ECON_DAILY_DIGEST Job 정의
@@ -321,13 +326,54 @@ public class BatchConfiguration {
                         }
                     }
                     
-                    // TODO: AI 요약 로직 구현 (Task 7에서)
-                    // 임시로 가상의 처리 결과 생성
-                    int summarizedCount;
+                    int summarizedCount = 0;
+                    
                     if (useLLM) {
-                        summarizedCount = extractedCount; // LLM 사용 시 모든 기사 요약
+                        if (!openAiClient.isApiAvailable()) {
+                            System.out.println("OpenAI API가 사용할 수 없습니다. 요약을 건너뜁니다.");
+                        } else {
+                            System.out.println("OpenAI API를 사용하여 AI 요약을 시작합니다.");
+                            
+                            // 추출 성공한 기사들만 AI 요약 처리
+                            for (ArticleDto article : extractedArticles) {
+                                if (article.isExtractSuccess() && article.getContent() != null && !article.getContent().trim().isEmpty()) {
+                                    try {
+                                        System.out.println("AI 요약 처리: [" + article.getSource() + "] " + article.getTitle());
+                                        
+                                        // OpenAI API를 사용하여 경제 뉴스 요약 생성
+                                        EconomicSummaryResponse summary = openAiClient.generateEconomicSummary(
+                                            article.getTitle(), 
+                                            article.getContent()
+                                        );
+                                        
+                                        // ArticleDto에 AI 요약 결과 저장
+                                        article.setAiSummary(summary.getSummary());
+                                        article.setAiAnalysis(summary.getAnalysis());
+                                        article.setImportanceScore(summary.getImportanceScore());
+                                        article.setMarketImpact(summary.getMarketImpact());
+                                        article.setInvestorInterest(summary.getInvestorInterest());
+                                        article.setConfidenceScore(summary.getConfidenceScore());
+                                        article.setSummarizedAt(java.time.LocalDateTime.now());
+                                        article.setSummarizeSuccess(true);
+                                        
+                                        summarizedCount++;
+                                        
+                                        System.out.println("  요약 완료 - 중요도: " + summary.getImportanceScore() + 
+                                                         ", 시장영향: " + summary.getMarketImpact() + 
+                                                         ", 신뢰도: " + summary.getConfidenceScore());
+                                        
+                                        // API 호출 간 짧은 대기 (Rate Limit 방지)
+                                        Thread.sleep(500);
+                                        
+                                    } catch (Exception e) {
+                                        System.err.println("  AI 요약 실패: " + e.getMessage());
+                                        article.setSummarizeError(e.getMessage());
+                                        article.setSummarizeSuccess(false);
+                                    }
+                                }
+                            }
+                        }
                     } else {
-                        summarizedCount = 0; // LLM 미사용 시 요약 없음
                         System.out.println("LLM이 비활성화되어 요약을 건너뜁니다.");
                     }
                     
