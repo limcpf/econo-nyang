@@ -12,9 +12,9 @@ spring:
       - classpath:config/digest-template.yml
   
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/econdigest}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASS:password}
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/econdigest}
+    username: ${DB_USER:econdigest_user}
+    password: your-secure-password
     driver-class-name: org.postgresql.Driver
   
   jpa:
@@ -31,7 +31,7 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     validate-on-migrate: true
-  
+
   batch:
     job:
       enabled: false
@@ -162,7 +162,7 @@ spring:
       on-profile: dev
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/econdigest_dev
+    url: jdbc:postgresql://localhost:5434/econdigest
   
   jpa:
     show-sql: true

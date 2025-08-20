@@ -1,49 +1,79 @@
--- Additional indexes and constraints for performance optimization
+-- Enable trigram extension for fuzzy text matching (must come first)
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 
--- Composite indexes for common query patterns
-CREATE INDEX idx_articles_source_published_at ON articles(source, published_at DESC);
-CREATE INDEX idx_articles_published_at_created_at ON articles(published_at DESC, created_at DESC);
+-- ============================
+-- ARTICLES 인덱스
+-- ============================
 
--- Index for text search on article titles (for duplicate detection)
-CREATE INDEX idx_articles_title_trgm ON articles USING gin(title gin_trgm_ops);
+-- (source, published_at) 복합 인덱스: 소스/발행일 기반 조회
+CREATE INDEX IF NOT EXISTS idx_articles_source_published_at
+    ON articles (source, published_at DESC);
 
--- Enable trigram extension for fuzzy text matching (if not exists)
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- published_at 정렬 + created_at 커버링
+-- 범위/정렬 최적화에 유리하며 중복 인덱스 피함
+CREATE INDEX IF NOT EXISTS idx_articles_published_at_desc_inc_created_at
+    ON articles (published_at DESC) INCLUDE (created_at);
 
--- Composite index for summaries ranking queries
-CREATE INDEX idx_summaries_score_created_at ON summaries(score DESC, created_at DESC);
+-- created_at 범위 스캔용 (최근 N일 조회 시 사용)
+-- 기존의 CURRENT_DATE 포함 부분 인덱스를 일반 인덱스로 대체
+CREATE INDEX IF NOT EXISTS idx_articles_created_at_desc
+    ON articles (created_at DESC);
 
--- Index for finding summaries by date range
-CREATE INDEX idx_summaries_article_created_at ON summaries(article_id, created_at DESC);
+-- 제목 트라이그램 인덱스: 중복/유사 제목 탐지
+-- NULL 제목은 제외해 공간 절약 (부분 인덱스지만 함수 사용 아님 → 안전)
+CREATE INDEX IF NOT EXISTS idx_articles_title_trgm
+    ON articles USING gin (title gin_trgm_ops)
+    WHERE title IS NOT NULL;
 
--- Partial indexes for active/recent data
-CREATE INDEX idx_articles_recent ON articles(created_at DESC) 
-    WHERE created_at >= (CURRENT_DATE - INTERVAL '30 days');
+-- ============================
+-- SUMMARIES 인덱스
+-- ============================
 
-CREATE INDEX idx_summaries_recent ON summaries(created_at DESC) 
-    WHERE created_at >= (CURRENT_DATE - INTERVAL '30 days');
+-- 점수 정렬 + created_at 커버링
+CREATE INDEX IF NOT EXISTS idx_summaries_score_desc_inc_created_at
+    ON summaries (score DESC) INCLUDE (created_at);
 
--- Constraint to ensure valid status values in dispatch_log
-ALTER TABLE dispatch_log 
-ADD CONSTRAINT chk_dispatch_log_status 
-CHECK (status IN ('SUCCESS', 'FAILED', 'PENDING', 'RETRY'));
+-- 기사별 요약을 최신순으로 찾을 때
+CREATE INDEX IF NOT EXISTS idx_summaries_article_created_at_desc
+    ON summaries (article_id, created_at DESC);
 
--- Constraint to ensure valid channel values
-ALTER TABLE dispatch_log 
-ADD CONSTRAINT chk_dispatch_log_channel 
-CHECK (channel IN ('discord', 'slack', 'webhook', 'email'));
+-- created_at 범위 스캔용 (최근 N일 조회 시 사용)
+CREATE INDEX IF NOT EXISTS idx_summaries_created_at_desc
+    ON summaries (created_at DESC);
 
--- Constraint to ensure positive attempt count
-ALTER TABLE dispatch_log 
-ADD CONSTRAINT chk_dispatch_log_attempt_count 
-CHECK (attempt_count > 0);
+-- ============================
+-- 제약조건 (Constraints)
+-- ============================
+DO $$
+BEGIN
+ALTER TABLE dispatch_log
+    ADD CONSTRAINT chk_dispatch_log_status
+        CHECK (status IN ('SUCCESS', 'FAILED', 'PENDING', 'RETRY'));
+EXCEPTION
+    WHEN duplicate_object THEN
+        NULL; -- 이미 존재하면 무시
+END $$;
 
--- Constraint to ensure valid score range in summaries
-ALTER TABLE summaries 
-ADD CONSTRAINT chk_summaries_score 
-CHECK (score >= 0 AND score <= 100);
+DO $$
+BEGIN
+ALTER TABLE dispatch_log
+    ADD CONSTRAINT chk_dispatch_log_channel
+    CHECK (channel IN ('discord', 'slack', 'webhook', 'email'));
+EXCEPTION
+    WHEN duplicate_object THEN
+        NULL; -- 이미 존재하면 무시
+END $$;
 
--- Comments for new constraints
+
+
+ALTER TABLE dispatch_log
+    ADD CONSTRAINT chk_dispatch_log_attempt_count
+        CHECK (attempt_count > 0);
+
+ALTER TABLE summaries
+    ADD CONSTRAINT chk_summaries_score
+        CHECK (score >= 0 AND score <= 100);
+
 COMMENT ON CONSTRAINT chk_dispatch_log_status ON dispatch_log IS 'Valid status values only';
 COMMENT ON CONSTRAINT chk_dispatch_log_channel ON dispatch_log IS 'Valid channel types only';
 COMMENT ON CONSTRAINT chk_dispatch_log_attempt_count ON dispatch_log IS 'Attempt count must be positive';
