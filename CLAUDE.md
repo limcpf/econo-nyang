@@ -18,8 +18,8 @@
 ## 3) 디렉터리 & 파일 규칙
 
 ```
-/src/main/java/com/yourco/econdigest/...
-/src/test/java/com/yourco/econdigest/...
+/src/main/java/com/yourco/econyang/...
+/src/test/java/com/yourco/econyang/...
 /src/main/resources/
   application.yml, rss-sources.yml, digest-template.yml
 /db/migration/                    # Flyway
@@ -39,7 +39,7 @@ CLAUDE.md
 
 ## 4) 네이밍 규칙
 
-* **패키지**: `com.yourco.econdigest.{layer}` (e.g., `batch.steps`, `core.openai`)
+* **패키지**: `com.yourco.econyang.{layer}` (e.g., `batch.steps`, `core.openai`)
 * **배치 명칭**
 
     * Job: `ECON_DAILY_DIGEST`, `ECON_BACKFILL`

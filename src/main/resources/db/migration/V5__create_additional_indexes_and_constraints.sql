@@ -72,7 +72,7 @@ ALTER TABLE dispatch_log
 
 ALTER TABLE summaries
     ADD CONSTRAINT chk_summaries_score
-        CHECK (score >= 0 AND score <= 100);
+    CHECK (score >= 0 AND score <= 100);
 
 COMMENT ON CONSTRAINT chk_dispatch_log_status ON dispatch_log IS 'Valid status values only';
 COMMENT ON CONSTRAINT chk_dispatch_log_channel ON dispatch_log IS 'Valid channel types only';

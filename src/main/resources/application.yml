@@ -1,6 +1,6 @@
 spring:
   application:
-    name: econdigest
+    name: econyang
   
   profiles:
     active: dev
@@ -12,8 +12,8 @@ spring:
       - classpath:config/digest-template.yml
   
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5434/econdigest}
-    username: ${DB_USER:econdigest_user}
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/econyang}
+    username: ${DB_USER:econyang_user}
     password: your-secure-password
     driver-class-name: org.postgresql.Driver
   
@@ -44,7 +44,7 @@ spring:
 
 logging:
   level:
-    com.yourco.econdigest: INFO
+    com.yourco.econyang: INFO
     org.springframework.batch: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
@@ -77,7 +77,7 @@ sources:
     description: "Google 뉴스 한국경제 검색 결과"
 
 global:
-  userAgent: "EconDigest/1.0"
+  userAgent: "EconoNyang/1.0 🐱"
   defaultTimeout: 10000
   defaultRetryCount: 3
   maxArticlesPerSource: 20
@@ -141,7 +141,7 @@ app:
     timeoutSec: 15
     maxRetries: 2
     retryDelayMs: 1000
-    userAgent: "EconDigest-Bot/1.0 (+https://github.com/yourco/econdigest)"
+    userAgent: "EconoNyang-Bot/1.0 🐱 (+https://github.com/yourco/econyang)"
     
   # 알림/모니터링 설정
   monitoring:
@@ -162,7 +162,7 @@ spring:
       on-profile: dev
   
   datasource:
-    url: jdbc:postgresql://localhost:5434/econdigest
+    url: jdbc:postgresql://localhost:5434/econyang
   
   jpa:
     show-sql: true
@@ -198,5 +198,5 @@ spring:
   
 logging:
   level:
-    com.yourco.econdigest: WARN
+    com.yourco.econyang: WARN
     org.springframework.batch: WARN

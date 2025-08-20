@@ -134,4 +134,31 @@ yarn-error.log*
 
 # Test output
 test-output/
+# Secrets and Environment
+.env
+.env.local
+.env.*.local
+secrets/
+
+# API Keys and Credentials  
+**/application-secret.yml
+**/application-prod.yml
 flyway.conf
+
+# Backup files
+*.backup
+*.bak
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# EconoNyang specific
+data/
+logs/*.log

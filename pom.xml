@@ -9,10 +9,10 @@
         <relativePath/>
     </parent>
     <groupId>com.yourco</groupId>
-    <artifactId>econdigest</artifactId>
+    <artifactId>econyang</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>econdigest</name>
-    <description>Economic News Digest with AI Summary</description>
+    <name>EconoNyang</name>
+    <description>매일 너에게 경제뉴스를 소개해주는 귀여운 친구 🐱</description>
     <properties>
         <java.version>8</java.version>
     </properties>
