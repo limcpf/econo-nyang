@@ -1,0 +1,325 @@
+spring:
+  profiles: dev,prod
+
+# RSS 피드 소스 설정
+rss:
+  sources:
+    - name: "한국경제"
+      url: "https://www.hankyung.com/feed/economy"
+      enabled: true
+      category: "경제일반"
+      updateIntervalMinutes: 30
+      priority: 1
+    - name: "매일경제"
+      url: "https://www.mk.co.kr/rss/30000001/"
+      enabled: true
+      category: "경제일반"
+      updateIntervalMinutes: 30
+      priority: 1
+    - name: "연합뉴스 경제"
+      url: "https://www.yna.co.kr/RSS/economy.xml"
+      enabled: true
+      category: "경제일반"
+      updateIntervalMinutes: 15
+      priority: 2
+    - name: "아시아경제"
+      url: "https://rss.asiae.co.kr/rss/economy.xml"
+      enabled: true
+      category: "경제일반"
+      updateIntervalMinutes: 30
+      priority: 2
+    - name: "이데일리"
+      url: "https://rss.edaily.co.kr/rss/economy.xml"
+      enabled: true
+      category: "경제일반"
+      updateIntervalMinutes: 30
+      priority: 2
+    - name: "서울경제"
+      url: "https://www.sedaily.com/RSS/S11.xml"
+      enabled: true
+      category: "경제일반"
+      updateIntervalMinutes: 30
+      priority: 3
+    - name: "파이낸셜뉴스"
+      url: "https://www.fnnews.com/rss/fn_economy.xml"
+      enabled: true
+      category: "경제일반"
+      updateIntervalMinutes: 30
+      priority: 3
+    - name: "한국경제 증권"
+      url: "https://www.hankyung.com/feed/stock-market"
+      enabled: true
+      category: "증권/주식"
+      updateIntervalMinutes: 15
+      priority: 2
+    - name: "매일경제 증권"
+      url: "https://www.mk.co.kr/rss/30200030/"
+      enabled: true
+      category: "증권/주식"
+      updateIntervalMinutes: 15
+      priority: 2
+    - name: "한국경제 부동산"
+      url: "https://www.hankyung.com/feed/realestate"
+      enabled: true
+      category: "부동산"
+      updateIntervalMinutes: 60
+      priority: 3
+    - name: "매일경제 부동산"
+      url: "https://www.mk.co.kr/rss/30300018/"
+      enabled: true
+      category: "부동산"
+      updateIntervalMinutes: 60
+      priority: 3
+    - name: "한국은행 보도자료"
+      url: "https://www.bok.or.kr/portal/singl/rssList.do?menuNo=200690"
+      enabled: true
+      category: "금융정책"
+      updateIntervalMinutes: 120
+      priority: 1
+    - name: "금융위원회 보도자료"
+      url: "https://www.fsc.go.kr/dapi/xml/rss/C0000217/"
+      enabled: true
+      category: "금융정책"
+      updateIntervalMinutes: 120
+      priority: 1
+
+  # 키워드 필터 설정
+  filters:
+    # 포함되어야 할 키워드 (OR 조건)
+    includeKeywords:
+      - "경제"
+      - "금리"
+      - "인플레이션"
+      - "GDP"
+      - "수출입"
+      - "무역"
+      - "환율"
+      - "주가"
+      - "코스피"
+      - "코스닥"
+      - "부동산"
+      - "아파트"
+      - "집값"
+      - "금융"
+      - "은행"
+      - "증권"
+      - "투자"
+      - "펀드"
+      - "채권"
+      - "주식"
+      - "기업"
+      - "산업"
+      - "제조업"
+      - "서비스업"
+      - "IT"
+      - "반도체"
+      - "자동차"
+      - "에너지"
+      - "원자재"
+      - "유가"
+      - "국제유가"
+      - "달러"
+      - "원달러"
+      - "중앙은행"
+      - "한국은행"
+      - "연준"
+      - "Fed"
+      - "ECB"
+      - "일본은행"
+      - "중국인민은행"
+      - "물가"
+      - "소비"
+      - "소비자물가"
+      - "생산자물가"
+      - "고용"
+      - "실업"
+      - "실업률"
+      - "취업"
+      - "일자리"
+      - "임금"
+      - "최저임금"
+      - "세금"
+      - "세율"
+      - "법인세"
+      - "소득세"
+      - "부가세"
+      - "관세"
+      - "예산"
+      - "국가예산"
+      - "재정"
+      - "국채"
+      - "회사채"
+      - "IPO"
+      - "상장"
+      - "M&A"
+      - "인수합병"
+      - "구조조정"
+      - "부도"
+      - "워크아웃"
+      - "신용등급"
+      - "신용평가"
+      - "무디스"
+      - "S&P"
+      - "피치"
+      - "스타트업"
+      - "유니콘"
+      - "벤처"
+      - "코로나19"
+      - "경기침체"
+      - "경기회복"
+      - "인공지능"
+      - "AI"
+      - "블록체인"
+      - "비트코인"
+      - "가상화폐"
+      - "암호화폐"
+      - "NFT"
+      - "메타버스"
+      - "ESG"
+      - "탄소중립"
+      - "그린뉴딜"
+      - "디지털뉴딜"
+      - "K-뉴딜"
+
+    # 제외할 키워드 (AND 조건)
+    excludeKeywords:
+      - "스포츠"
+      - "연예"
+      - "오락"
+      - "게임"
+      - "드라마"
+      - "영화"
+      - "음악"
+      - "아이돌"
+      - "연예인"
+      - "배우"
+      - "가수"
+      - "날씨"
+      - "기상"
+      - "태풍"
+      - "지진"
+      - "화재"
+      - "사고"
+      - "범죄"
+      - "살인"
+      - "강도"
+      - "절도"
+      - "교통사고"
+      - "의료"
+      - "병원"
+      - "의사"
+      - "간호사"
+      - "환자"
+      - "질병"
+      - "코로나" # 단독으로는 제외 (코로나19는 포함 키워드에 있음)
+      - "백신"
+      - "치료제"
+      - "건강"
+      - "다이어트"
+      - "운동"
+      - "피트니스"
+
+    # 최소 제목 길이 (문자 수)
+    minTitleLength: 10
+    
+    # 최대 제목 길이 (문자 수)
+    maxTitleLength: 200
+
+  # RSS 수집 설정
+  collection:
+    # 최대 기사 수 (소스별)
+    maxArticlesPerSource: 50
+    
+    # 연결 타임아웃 (초)
+    connectionTimeoutSec: 10
+    
+    # 읽기 타임아웃 (초)
+    readTimeoutSec: 30
+    
+    # 재시도 횟수
+    maxRetries: 3
+    
+    # 재시도 간격 (밀리초)
+    retryDelayMs: 2000
+    
+    # User-Agent 설정
+    userAgent: "EconDigest-RSS-Bot/1.0 (+https://github.com/yourco/econdigest)"
+    
+    # 중복 제거 설정
+    deduplication:
+      # URL 기반 중복 제거 활성화
+      enableUrlDedup: true
+      
+      # 제목 유사도 기반 중복 제거 활성화
+      enableTitleDedup: true
+      
+      # 제목 유사도 임계값 (0.0 ~ 1.0)
+      titleSimilarityThreshold: 0.85
+      
+      # 같은 소스에서 중복 제거만 할지 여부
+      dedupWithinSourceOnly: false
+
+  # 시간 설정
+  time:
+    # 기본 시간대
+    defaultTimeZone: "Asia/Seoul"
+    
+    # 최대 기사 나이 (시간)
+    maxArticleAgeHours: 72
+    
+    # 날짜 파싱 형식들
+    dateFormats:
+      - "yyyy-MM-dd'T'HH:mm:ss'Z'"
+      - "yyyy-MM-dd'T'HH:mm:ssXXX"
+      - "EEE, dd MMM yyyy HH:mm:ss zzz"
+      - "yyyy-MM-dd HH:mm:ss"
+      - "yyyy-MM-dd"
+
+---
+spring:
+  profiles: test
+
+# 테스트용 설정
+rss:
+  sources:
+    - name: "테스트소스1"
+      url: "https://example.com/rss1.xml"
+      enabled: true
+      category: "테스트"
+      updateIntervalMinutes: 5
+      priority: 1
+    - name: "테스트소스2"
+      url: "https://example.com/rss2.xml"
+      enabled: true
+      category: "테스트"
+      updateIntervalMinutes: 5
+      priority: 2
+
+  filters:
+    includeKeywords:
+      - "경제"
+      - "테스트"
+    excludeKeywords:
+      - "광고"
+    minTitleLength: 5
+    maxTitleLength: 100
+
+  collection:
+    maxArticlesPerSource: 10
+    connectionTimeoutSec: 5
+    readTimeoutSec: 10
+    maxRetries: 2
+    retryDelayMs: 1000
+    userAgent: "EconDigest-Test-Bot/1.0"
+    deduplication:
+      enableUrlDedup: true
+      enableTitleDedup: true
+      titleSimilarityThreshold: 0.9
+      dedupWithinSourceOnly: true
+
+  time:
+    defaultTimeZone: "Asia/Seoul"
+    maxArticleAgeHours: 24
+    dateFormats:
+      - "yyyy-MM-dd'T'HH:mm:ss'Z'"
+      - "EEE, dd MMM yyyy HH:mm:ss zzz"

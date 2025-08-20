@@ -1,0 +1,296 @@
+spring:
+  profiles: dev,prod
+
+# 다이제스트 템플릿 설정
+digest:
+  templates:
+    # 기본 다이제스트 템플릿
+    default:
+      title: "📈 오늘의 경제뉴스 다이제스트"
+      subtitle: "AI가 엄선한 주요 경제 뉴스를 한눈에"
+      
+      # 헤더 템플릿
+      header: |
+        🌅 **{{date}}** 경제뉴스 다이제스트
+        
+        안녕하세요! 오늘 하루 중요한 경제 뉴스들을 AI가 분석하여 전해드립니다.
+        총 **{{totalArticles}}개**의 뉴스 중 **중요도 {{minImportance}}점 이상**인 뉴스만을 엄선했습니다.
+        
+        ---
+        
+      # 섹션 헤더 템플릿
+      sectionHeaders:
+        topNews: "🔥 **오늘의 핵심 뉴스**"
+        marketNews: "📊 **시장/증권 동향**"
+        policyNews: "🏛️ **정책/금융 뉴스**"
+        realEstateNews: "🏠 **부동산 동향**"
+        globalNews: "🌍 **국제 경제 뉴스**"
+        corporateNews: "🏢 **기업 뉴스**"
+        techNews: "💻 **IT/테크 뉴스**"
+        otherNews: "📰 **기타 경제 뉴스**"
+      
+      # 기사 항목 템플릿
+      articleItem: |
+        ### {{importance}}🌟 **{{title}}**
+        
+        📍 **출처**: {{source}} | ⏰ **시간**: {{publishedTime}}
+        
+        📝 **요약**: {{aiSummary}}
+        
+        🔍 **AI 분석**: {{aiAnalysis}}
+        
+        📈 **시장 영향**: {{marketImpact}} | 👥 **투자자 관심**: {{investorInterest}}
+        
+        🏷️ **키워드**: {{keywords}}
+        
+        📖 [원문 보기]({{url}})
+        
+        ---
+        
+      # 푸터 템플릿  
+      footer: |
+        
+        ---
+        
+        📊 **오늘의 통계**
+        - 📰 수집된 뉴스: {{totalCollected}}개
+        - ✅ 분석 완료: {{totalAnalyzed}}개  
+        - ⭐ 평균 중요도: {{avgImportance}}/10
+        - 📈 긍정적 영향: {{positiveNews}}개
+        - 📉 부정적 영향: {{negativeNews}}개
+        
+        🤖 **AI 분석 신뢰도**: {{avgConfidence}}/10
+        
+        💡 **투자 참고사항**: 이 다이제스트는 정보 제공 목적이며, 투자 결정은 개인의 판단에 따라 주시기 바랍니다.
+        
+        ---
+        
+        📅 다음 다이제스트는 **{{nextDigestTime}}**에 발송 예정입니다.
+        
+        🔗 더 많은 경제 뉴스: [경제뉴스 다이제스트 홈](https://github.com/yourco/econdigest)
+        
+        🤖 Made with ❤️ by EconDigest AI
+        
+    # 간단한 다이제스트 템플릿
+    simple:
+      title: "📊 경제뉴스 요약"
+      subtitle: "오늘의 주요 경제 동향"
+      
+      header: |
+        **{{date}}** 경제뉴스 요약 ({{totalArticles}}개)
+        
+      articleItem: |
+        **{{title}}** ({{source}})
+        {{aiSummary}}
+        [링크]({{url}})
+        
+      footer: |
+        
+        ---
+        총 {{totalArticles}}개 뉴스 | 평균 중요도 {{avgImportance}}/10
+        
+    # 상세 분석 템플릿
+    detailed:
+      title: "📈 경제뉴스 상세 분석 리포트"
+      subtitle: "AI 기반 심층 경제 분석"
+      
+      header: |
+        # 📈 경제뉴스 상세 분석 리포트
+        
+        **분석 일시**: {{date}} {{time}}
+        **분석 대상**: {{totalArticles}}개 뉴스
+        **AI 신뢰도**: {{avgConfidence}}/10
+        
+        ## 📊 오늘의 경제 동향 개요
+        
+        {{#if hasHighImportanceNews}}
+        🔴 **주요 이슈**: 중요도 8점 이상의 뉴스가 {{highImportanceCount}}건 발생했습니다.
+        {{/if}}
+        
+        {{#if hasCriticalNews}}
+        🚨 **긴급**: 중요도 9점 이상의 긴급 뉴스가 있습니다.
+        {{/if}}
+        
+        **시장 영향 분석**:
+        - 📈 긍정적 영향: {{positiveNews}}건 ({{positivePercent}}%)
+        - 📉 부정적 영향: {{negativeNews}}건 ({{negativePercent}}%)  
+        - ⚖️ 중립적 영향: {{neutralNews}}건 ({{neutralPercent}}%)
+        
+        ---
+        
+      sectionHeaders:
+        critical: "🚨 **긴급 뉴스** (중요도 9-10점)"
+        veryHigh: "🔴 **매우 중요** (중요도 8점)"
+        high: "🟡 **중요** (중요도 6-7점)"
+        medium: "🟢 **보통** (중요도 4-5점)"
+        low: "⚪ **참고** (중요도 1-3점)"
+      
+      articleItem: |
+        ## {{importance}}⭐ {{title}}
+        
+        **📰 출처**: {{source}} | **🕐 발행**: {{publishedTime}}  
+        **🎯 중요도**: {{importanceScore}}/10 | **🔍 신뢰도**: {{confidenceScore}}/10
+        
+        ### 📝 AI 요약
+        {{aiSummary}}
+        
+        ### 🧠 AI 분석  
+        {{aiAnalysis}}
+        
+        ### 📊 영향 분석
+        - **시장 영향**: {{marketImpact}}
+        - **투자자 관심**: {{investorInterest}}
+        - **관련 섹터**: {{economicSectors}}
+        
+        ### 🏷️ 핵심 키워드
+        {{keywords}}
+        
+        {{#if context}}
+        ### 💡 추가 컨텍스트
+        {{context}}
+        {{/if}}
+        
+        📖 **[원문 링크]({{url}})**
+        
+        ---
+        
+      footer: |
+        
+        ---
+        
+        # 📊 상세 통계 및 분석
+        
+        ## 🔢 수집/분석 통계
+        | 구분 | 수량 | 비율 |
+        |------|------|------|
+        | 총 수집 뉴스 | {{totalCollected}}개 | 100% |
+        | 본문 추출 성공 | {{extractedNews}}개 | {{extractSuccessRate}}% |
+        | AI 분석 완료 | {{totalAnalyzed}}개 | {{analysisSuccessRate}}% |
+        | 최종 선정 뉴스 | {{totalArticles}}개 | {{selectionRate}}% |
+        
+        ## 📈 중요도 분포
+        | 중요도 | 개수 | 비율 |
+        |--------|------|------|
+        | 9-10점 (긴급) | {{criticalCount}}개 | {{criticalPercent}}% |
+        | 8점 (매우 중요) | {{veryHighCount}}개 | {{veryHighPercent}}% |
+        | 6-7점 (중요) | {{highCount}}개 | {{highPercent}}% |
+        | 4-5점 (보통) | {{mediumCount}}개 | {{mediumPercent}}% |
+        | 1-3점 (참고) | {{lowCount}}개 | {{lowPercent}}% |
+        
+        ## 🏢 섹터별 분석
+        {{#each sectorAnalysis}}
+        - **{{sector}}**: {{count}}건 (평균 중요도: {{avgImportance}}/10)
+        {{/each}}
+        
+        ## 📅 시간대별 분포  
+        {{#each timeAnalysis}}
+        - **{{timeRange}}**: {{count}}건
+        {{/each}}
+        
+        ---
+        
+        💡 **종합 의견**: {{overallAssessment}}
+        
+        ⚠️ **주의사항**: 이 분석은 AI에 의해 자동 생성된 것으로, 투자 결정 시 추가적인 정보 수집과 전문가 상담을 권합니다.
+        
+        📧 문의사항이 있으시면 [이슈 등록](https://github.com/yourco/econdigest/issues)을 통해 알려주세요.
+        
+        🤖 **EconDigest AI** | 📅 {{currentDateTime}}
+
+  # 형식별 설정
+  formats:
+    markdown:
+      fileExtension: ".md"
+      mimeType: "text/markdown; charset=utf-8"
+      
+    html:
+      fileExtension: ".html"
+      mimeType: "text/html; charset=utf-8"
+      wrapperTemplate: |
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>{{title}}</title>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; margin: 40px; }
+                h1, h2, h3 { color: #333; }
+                .article { border-bottom: 1px solid #eee; margin-bottom: 30px; padding-bottom: 20px; }
+                .meta { color: #666; font-size: 0.9em; }
+                .summary { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+                .analysis { background: #e8f4f8; padding: 15px; border-radius: 5px; margin: 10px 0; }
+                .stats { background: #f0f8f0; padding: 20px; border-radius: 10px; margin: 20px 0; }
+                .importance-high { border-left: 4px solid #ff4444; }
+                .importance-medium { border-left: 4px solid #ffaa00; }
+                .importance-low { border-left: 4px solid #44ff44; }
+                a { color: #0066cc; text-decoration: none; }
+                a:hover { text-decoration: underline; }
+            </style>
+        </head>
+        <body>
+            {{content}}
+        </body>
+        </html>
+        
+    json:
+      fileExtension: ".json"
+      mimeType: "application/json; charset=utf-8"
+
+  # 발송 설정
+  delivery:
+    # 기본 발송 시간 (24시간 형식)
+    defaultDeliveryTimes:
+      - "07:00"  # 아침 7시
+      - "12:00"  # 낮 12시  
+      - "18:00"  # 저녁 6시
+      
+    # 주말 발송 여부
+    enableWeekendDelivery: false
+    
+    # 공휴일 발송 여부  
+    enableHolidayDelivery: false
+    
+    # 최소 기사 수 (이보다 적으면 발송 안함)
+    minArticlesForDelivery: 3
+    
+    # 최대 기사 수 (이보다 많으면 중요도 순으로 필터링)
+    maxArticlesPerDigest: 20
+
+---
+spring:
+  profiles: test
+
+# 테스트용 간단한 템플릿
+digest:
+  templates:
+    default:
+      title: "테스트 다이제스트"
+      subtitle: "테스트용"
+      
+      header: |
+        # 테스트 다이제스트 - {{date}}
+        총 {{totalArticles}}개 기사
+        
+      articleItem: |
+        ## {{title}} ({{source}})
+        {{aiSummary}}
+        중요도: {{importanceScore}}/10
+        [링크]({{url}})
+        
+      footer: |
+        ---
+        테스트 완료
+        
+  formats:
+    markdown:
+      fileExtension: ".md"
+      mimeType: "text/markdown; charset=utf-8"
+      
+  delivery:
+    defaultDeliveryTimes:
+      - "09:00"
+    enableWeekendDelivery: true
+    enableHolidayDelivery: true  
+    minArticlesForDelivery: 1
+    maxArticlesPerDigest: 5

@@ -31,17 +31,17 @@ public class RssFeedService {
     public List<ArticleDto> fetchArticles(RssSourcesConfig.RssSource source) {
         List<ArticleDto> articles = new ArrayList<>();
         
-        for (int attempt = 1; attempt <= Math.max(source.getRetryCount(), 1); attempt++) {
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
                 SyndFeed feed = fetchFeed(source);
                 articles = parseFeed(feed, source);
                 break; // 성공 시 루프 종료
                 
             } catch (Exception e) {
-                System.err.println("RSS 피드 수집 실패 (시도 " + attempt + "/" + source.getRetryCount() + "): " + 
+                System.err.println("RSS 피드 수집 실패 (시도 " + attempt + "/" + MAX_RETRIES + "): " + 
                                  source.getUrl() + " - " + e.getMessage());
                 
-                if (attempt < source.getRetryCount()) {
+                if (attempt < MAX_RETRIES) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(RETRY_DELAY_MS * attempt);
                     } catch (InterruptedException ie) {
@@ -104,9 +104,9 @@ public class RssFeedService {
         URL feedUrl = new URL(source.getUrl());
         URLConnection connection = feedUrl.openConnection();
         
-        // 타임아웃 설정
-        connection.setConnectTimeout(source.getTimeout());
-        connection.setReadTimeout(source.getTimeout());
+        // 타임아웃 설정 (기본값 사용)
+        connection.setConnectTimeout(10000); // 10초
+        connection.setReadTimeout(30000);    // 30초
         
         // User-Agent 설정
         connection.setRequestProperty("User-Agent", "EconDigest/1.0 (+https://github.com/yourco/econdigest)");
@@ -165,10 +165,10 @@ public class RssFeedService {
         }
         
         ArticleDto article = new ArticleDto();
-        article.setSource(source.getCode());
+        article.setSource(source.getName());
         article.setUrl(url);
         article.setTitle(title.trim());
-        article.setSourceWeight(source.getWeight());
+        article.setSourceWeight(1.0); // 기본 가중치
         
         // 설명/요약
         if (entry.getDescription() != null && entry.getDescription().getValue() != null) {

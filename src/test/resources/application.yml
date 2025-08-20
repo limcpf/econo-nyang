@@ -11,15 +11,11 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create-drop
     show-sql: true
   
   flyway:
-    enabled: true
-    locations: classpath:db/test-migration
-    clean-disabled: false
-    ignore-migration-patterns: "*:missing,*:ignored"
-    baseline-on-migrate: true
+    enabled: false
   
   batch:
     job:

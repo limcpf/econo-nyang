@@ -4,6 +4,12 @@ spring:
   
   profiles:
     active: dev
+    
+  # 추가 설정 파일 로드
+  config:
+    import:
+      - classpath:config/rss-sources.yml
+      - classpath:config/digest-template.yml
   
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/econdigest}
@@ -105,11 +111,22 @@ filters:
 
 app:
   timezone: Asia/Seoul
+  
+  # 배치 실행 설정
+  batch:
+    autoRun: ${BATCH_AUTO_RUN:false}
+    
+  # 다이제스트 기본 설정
   digest:
     sendAt: "07:30"
-    maxArticles: 6
+    maxArticles: 10
+    minImportanceScore: 5
+    templateName: "default"
+    format: "markdown"
+    
+  # OpenAI API 설정
   openai:
-    apiBase: "https://api.openai.com/v1"
+    apiBase: ${OPENAI_API_BASE:https://api.openai.com}
     apiKey: ${OPENAI_API_KEY:}
     modelSmall: ${OPENAI_MODEL_SMALL:gpt-4o-mini}
     modelMain: ${OPENAI_MODEL_MAIN:gpt-4o}
@@ -118,6 +135,25 @@ app:
     batchCutoff: "07:10"
     maxInputTokens: 5000
     maxOutputTokens: 900
+    
+  # 본문 추출 설정
+  extraction:
+    timeoutSec: 15
+    maxRetries: 2
+    retryDelayMs: 1000
+    userAgent: "EconDigest-Bot/1.0 (+https://github.com/yourco/econdigest)"
+    
+  # 알림/모니터링 설정
+  monitoring:
+    enableHealthCheck: true
+    enableMetrics: true
+    logLevel: INFO
+    
+  # 보안 설정
+  security:
+    enableCors: true
+    corsOrigins: ${CORS_ORIGINS:http://localhost:3000,https://yourdomain.com}
+    rateLimitPerMinute: 60
 
 ---
 spring:

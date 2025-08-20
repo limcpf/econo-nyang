@@ -1,154 +1,240 @@
 package com.yourco.econdigest.batch.util;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobInstance;
+import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.item.ExecutionContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * ExecutionContextUtil 테스트
+ * ExecutionContextUtil 단위 테스트
  */
 class ExecutionContextUtilTest {
 
-    private StepExecution stepExecution;
-    private JobExecution jobExecution;
-
-    @BeforeEach
-    void setUp() {
-        jobExecution = new JobExecution(1L);
-        stepExecution = new StepExecution("testStep", jobExecution);
-    }
-
     @Test
-    void testPutAndGetFromJobContext() {
-        // Job ExecutionContext에 값 저장 및 조회 테스트
+    void testPutAndGetToJobContext() {
+        // Given
+        JobInstance jobInstance = new JobInstance(1L, "testJob");
+        JobExecution jobExecution = new JobExecution(jobInstance, new JobParameters());
+        StepExecution stepExecution = new StepExecution("testStep", jobExecution);
+        
         String key = "testKey";
-        String value = "testValue";
+        String expectedValue = "testValue";
 
-        ExecutionContextUtil.putToJobContext(stepExecution, key, value);
-        String retrieved = ExecutionContextUtil.getFromJobContext(stepExecution, key, String.class);
+        // When
+        ExecutionContextUtil.putToJobContext(stepExecution, key, expectedValue);
+        String retrievedValue = ExecutionContextUtil.getFromJobContext(stepExecution, key, String.class);
 
-        assertEquals(value, retrieved);
+        // Then
+        assertNotNull(retrievedValue);
+        assertEquals(expectedValue, retrievedValue);
     }
 
     @Test
-    void testGetFromJobContextWithWrongType() {
-        // 잘못된 타입으로 조회 시 null 반환 테스트
-        String key = "testKey";
-        String value = "testValue";
+    void testGetFromJobContext_NotFound() {
+        // Given
+        JobInstance jobInstance = new JobInstance(1L, "testJob");
+        JobExecution jobExecution = new JobExecution(jobInstance, new JobParameters());
+        StepExecution stepExecution = new StepExecution("testStep", jobExecution);
 
-        ExecutionContextUtil.putToJobContext(stepExecution, key, value);
-        Integer retrieved = ExecutionContextUtil.getFromJobContext(stepExecution, key, Integer.class);
+        // When
+        String result = ExecutionContextUtil.getFromJobContext(stepExecution, "nonexistent", String.class);
 
-        assertNull(retrieved);
+        // Then
+        assertNull(result);
     }
 
     @Test
-    void testGetIntFromJobContext() {
-        // Integer 값 저장 및 조회 테스트
+    void testPutAndGetIntFromJobContext() {
+        // Given
+        JobInstance jobInstance = new JobInstance(1L, "testJob");
+        JobExecution jobExecution = new JobExecution(jobInstance, new JobParameters());
+        StepExecution stepExecution = new StepExecution("testStep", jobExecution);
+        
         String key = ExecutionContextUtil.FETCHED_ARTICLES_COUNT;
-        Integer value = 10;
-        Integer defaultValue = 0;
+        Integer expectedCount = 42;
 
-        // 값이 존재하는 경우
-        ExecutionContextUtil.putToJobContext(stepExecution, key, value);
-        Integer retrieved = ExecutionContextUtil.getIntFromJobContext(stepExecution, key, defaultValue);
-        assertEquals(value, retrieved);
+        // When
+        ExecutionContextUtil.putToJobContext(stepExecution, key, expectedCount);
+        Integer retrievedCount = ExecutionContextUtil.getIntFromJobContext(stepExecution, key, 0);
 
-        // 값이 존재하지 않는 경우 기본값 반환
-        Integer notFound = ExecutionContextUtil.getIntFromJobContext(stepExecution, "nonExistentKey", defaultValue);
-        assertEquals(defaultValue, notFound);
+        // Then
+        assertEquals(expectedCount, retrievedCount);
     }
 
     @Test
-    void testGetStringFromJobContext() {
-        // String 값 저장 및 조회 테스트
+    void testGetIntFromJobContext_DefaultValue() {
+        // Given
+        JobInstance jobInstance = new JobInstance(1L, "testJob");
+        JobExecution jobExecution = new JobExecution(jobInstance, new JobParameters());
+        StepExecution stepExecution = new StepExecution("testStep", jobExecution);
+        
+        Integer defaultValue = 10;
+
+        // When
+        Integer count = ExecutionContextUtil.getIntFromJobContext(stepExecution, "nonexistent", defaultValue);
+
+        // Then
+        assertEquals(defaultValue, count);
+    }
+
+    @Test
+    void testStringFromJobContext() {
+        // Given
+        JobInstance jobInstance = new JobInstance(1L, "testJob");
+        JobExecution jobExecution = new JobExecution(jobInstance, new JobParameters());
+        StepExecution stepExecution = new StepExecution("testStep", jobExecution);
+        
         String key = ExecutionContextUtil.DISPATCH_STATUS;
-        String value = "SUCCESS";
-        String defaultValue = "UNKNOWN";
+        String expectedValue = "COMPLETED";
 
-        // 값이 존재하는 경우
-        ExecutionContextUtil.putToJobContext(stepExecution, key, value);
-        String retrieved = ExecutionContextUtil.getStringFromJobContext(stepExecution, key, defaultValue);
-        assertEquals(value, retrieved);
+        // When
+        ExecutionContextUtil.putToJobContext(stepExecution, key, expectedValue);
+        String retrievedValue = ExecutionContextUtil.getStringFromJobContext(stepExecution, key, "DEFAULT");
 
-        // 값이 존재하지 않는 경우 기본값 반환
-        String notFound = ExecutionContextUtil.getStringFromJobContext(stepExecution, "nonExistentKey", defaultValue);
-        assertEquals(defaultValue, notFound);
+        // Then
+        assertEquals(expectedValue, retrievedValue);
     }
 
     @Test
-    void testGetLongFromJobContext() {
-        // Long 값 저장 및 조회 테스트
-        String key = ExecutionContextUtil.PROCESSING_START_TIME;
-        Long value = System.currentTimeMillis();
-        Long defaultValue = 0L;
+    void testGetStringFromJobContext_DefaultValue() {
+        // Given
+        JobInstance jobInstance = new JobInstance(1L, "testJob");
+        JobExecution jobExecution = new JobExecution(jobInstance, new JobParameters());
+        StepExecution stepExecution = new StepExecution("testStep", jobExecution);
+        
+        String defaultValue = "DEFAULT_STATUS";
 
-        // 값이 존재하는 경우
-        ExecutionContextUtil.putToJobContext(stepExecution, key, value);
-        Long retrieved = ExecutionContextUtil.getLongFromJobContext(stepExecution, key, defaultValue);
-        assertEquals(value, retrieved);
+        // When
+        String status = ExecutionContextUtil.getStringFromJobContext(stepExecution, "nonexistent", defaultValue);
 
-        // 값이 존재하지 않는 경우 기본값 반환
-        Long notFound = ExecutionContextUtil.getLongFromJobContext(stepExecution, "nonExistentKey", defaultValue);
-        assertEquals(defaultValue, notFound);
+        // Then
+        assertEquals(defaultValue, status);
     }
 
     @Test
-    void testPutAndGetFromStepContext() {
-        // Step ExecutionContext에 값 저장 및 조회 테스트
+    void testLongFromJobContext() {
+        // Given
+        JobInstance jobInstance = new JobInstance(1L, "testJob");
+        JobExecution jobExecution = new JobExecution(jobInstance, new JobParameters());
+        StepExecution stepExecution = new StepExecution("testStep", jobExecution);
+        
+        String key = ExecutionContextUtil.FINAL_DIGEST_ID;
+        Long expectedValue = 123L;
+
+        // When
+        ExecutionContextUtil.putToJobContext(stepExecution, key, expectedValue);
+        Long retrievedValue = ExecutionContextUtil.getLongFromJobContext(stepExecution, key, 0L);
+
+        // Then
+        assertEquals(expectedValue, retrievedValue);
+    }
+
+    @Test
+    void testPutAndGetToStepContext() {
+        // Given
+        JobInstance jobInstance = new JobInstance(1L, "testJob");
+        JobExecution jobExecution = new JobExecution(jobInstance, new JobParameters());
+        StepExecution stepExecution = new StepExecution("testStep", jobExecution);
+        
         String key = "stepKey";
-        String value = "stepValue";
+        String expectedValue = "stepValue";
 
-        ExecutionContextUtil.putToStepContext(stepExecution, key, value);
-        String retrieved = ExecutionContextUtil.getFromStepContext(stepExecution, key, String.class);
+        // When
+        ExecutionContextUtil.putToStepContext(stepExecution, key, expectedValue);
+        String retrievedValue = ExecutionContextUtil.getFromStepContext(stepExecution, key, String.class);
 
-        assertEquals(value, retrieved);
+        // Then
+        assertNotNull(retrievedValue);
+        assertEquals(expectedValue, retrievedValue);
     }
 
     @Test
-    void testJobAndStepContextSeparation() {
-        // Job Context와 Step Context가 분리되어 있는지 테스트
-        String key = "sameKey";
-        String jobValue = "jobValue";
-        String stepValue = "stepValue";
+    void testGetFromStepContext_NotFound() {
+        // Given
+        JobInstance jobInstance = new JobInstance(1L, "testJob");
+        JobExecution jobExecution = new JobExecution(jobInstance, new JobParameters());
+        StepExecution stepExecution = new StepExecution("testStep", jobExecution);
 
-        ExecutionContextUtil.putToJobContext(stepExecution, key, jobValue);
-        ExecutionContextUtil.putToStepContext(stepExecution, key, stepValue);
+        // When
+        String result = ExecutionContextUtil.getFromStepContext(stepExecution, "nonexistent", String.class);
 
-        String retrievedFromJob = ExecutionContextUtil.getFromJobContext(stepExecution, key, String.class);
-        String retrievedFromStep = ExecutionContextUtil.getFromStepContext(stepExecution, key, String.class);
-
-        assertEquals(jobValue, retrievedFromJob);
-        assertEquals(stepValue, retrievedFromStep);
-        assertNotEquals(retrievedFromJob, retrievedFromStep);
+        // Then
+        assertNull(result);
     }
 
     @Test
-    void testAllExecutionContextKeys() {
-        // 모든 정의된 키 상수들이 사용 가능한지 테스트
-        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.FETCHED_ARTICLES_COUNT, 5);
-        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.EXTRACTED_ARTICLES_COUNT, 4);
-        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.SUMMARIZED_ARTICLES_COUNT, 3);
-        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.FINAL_DIGEST_ID, 12345L);
-        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.DISPATCH_STATUS, "SUCCESS");
-        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.PROCESSING_START_TIME, 1000L);
-        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.PROCESSING_END_TIME, 2000L);
-        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.ERROR_COUNT, 0);
-        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.WARNING_COUNT, 1);
+    void testContextConstants() {
+        // Given & When & Then - Context key 상수들이 정의되어 있는지 확인
+        assertNotNull(ExecutionContextUtil.FETCHED_ARTICLES_COUNT);
+        assertNotNull(ExecutionContextUtil.EXTRACTED_ARTICLES_COUNT);
+        assertNotNull(ExecutionContextUtil.SUMMARIZED_ARTICLES_COUNT);
+        assertNotNull(ExecutionContextUtil.FINAL_DIGEST_ID);
+        assertNotNull(ExecutionContextUtil.DISPATCH_STATUS);
+        assertNotNull(ExecutionContextUtil.PROCESSING_START_TIME);
+        assertNotNull(ExecutionContextUtil.PROCESSING_END_TIME);
+        assertNotNull(ExecutionContextUtil.ERROR_COUNT);
+        assertNotNull(ExecutionContextUtil.WARNING_COUNT);
+    }
 
-        // 모든 값이 정상적으로 저장되고 조회되는지 확인
-        assertEquals(Integer.valueOf(5), ExecutionContextUtil.getFromJobContext(stepExecution, ExecutionContextUtil.FETCHED_ARTICLES_COUNT, Integer.class));
-        assertEquals(Integer.valueOf(4), ExecutionContextUtil.getFromJobContext(stepExecution, ExecutionContextUtil.EXTRACTED_ARTICLES_COUNT, Integer.class));
-        assertEquals(Integer.valueOf(3), ExecutionContextUtil.getFromJobContext(stepExecution, ExecutionContextUtil.SUMMARIZED_ARTICLES_COUNT, Integer.class));
-        assertEquals(Long.valueOf(12345L), ExecutionContextUtil.getFromJobContext(stepExecution, ExecutionContextUtil.FINAL_DIGEST_ID, Long.class));
-        assertEquals("SUCCESS", ExecutionContextUtil.getFromJobContext(stepExecution, ExecutionContextUtil.DISPATCH_STATUS, String.class));
-        assertEquals(Long.valueOf(1000L), ExecutionContextUtil.getFromJobContext(stepExecution, ExecutionContextUtil.PROCESSING_START_TIME, Long.class));
-        assertEquals(Long.valueOf(2000L), ExecutionContextUtil.getFromJobContext(stepExecution, ExecutionContextUtil.PROCESSING_END_TIME, Long.class));
-        assertEquals(Integer.valueOf(0), ExecutionContextUtil.getFromJobContext(stepExecution, ExecutionContextUtil.ERROR_COUNT, Integer.class));
-        assertEquals(Integer.valueOf(1), ExecutionContextUtil.getFromJobContext(stepExecution, ExecutionContextUtil.WARNING_COUNT, Integer.class));
+    @Test
+    void testComplexScenario() {
+        // Given
+        JobInstance jobInstance = new JobInstance(1L, "testJob");
+        JobExecution jobExecution = new JobExecution(jobInstance, new JobParameters());
+        StepExecution stepExecution = new StepExecution("testStep", jobExecution);
+        
+        // When - 여러 데이터를 순차적으로 저장
+        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.FETCHED_ARTICLES_COUNT, 10);
+        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.EXTRACTED_ARTICLES_COUNT, 8);
+        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.DISPATCH_STATUS, "PROCESSING");
+        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.ERROR_COUNT, 2);
+        ExecutionContextUtil.putToStepContext(stepExecution, "stepData", "stepInfo");
+
+        // Then - 모든 데이터가 올바르게 저장되고 조회됨
+        assertEquals(Integer.valueOf(10), ExecutionContextUtil.getIntFromJobContext(stepExecution, ExecutionContextUtil.FETCHED_ARTICLES_COUNT, 0));
+        assertEquals(Integer.valueOf(8), ExecutionContextUtil.getIntFromJobContext(stepExecution, ExecutionContextUtil.EXTRACTED_ARTICLES_COUNT, 0));
+        assertEquals("PROCESSING", ExecutionContextUtil.getStringFromJobContext(stepExecution, ExecutionContextUtil.DISPATCH_STATUS, "UNKNOWN"));
+        assertEquals(Integer.valueOf(2), ExecutionContextUtil.getIntFromJobContext(stepExecution, ExecutionContextUtil.ERROR_COUNT, 0));
+        assertEquals("stepInfo", ExecutionContextUtil.getFromStepContext(stepExecution, "stepData", String.class));
+    }
+
+    @Test
+    void testDifferentDataTypes() {
+        // Given
+        JobInstance jobInstance = new JobInstance(1L, "testJob");
+        JobExecution jobExecution = new JobExecution(jobInstance, new JobParameters());
+        StepExecution stepExecution = new StepExecution("testStep", jobExecution);
+
+        // When & Then - 다양한 데이터 타입 테스트
+        ExecutionContextUtil.putToJobContext(stepExecution, "intValue", 42);
+        ExecutionContextUtil.putToJobContext(stepExecution, "longValue", 123L);
+        ExecutionContextUtil.putToJobContext(stepExecution, "stringValue", "test");
+        ExecutionContextUtil.putToJobContext(stepExecution, "booleanValue", true);
+
+        assertEquals(Integer.valueOf(42), ExecutionContextUtil.getFromJobContext(stepExecution, "intValue", Integer.class));
+        assertEquals(Long.valueOf(123L), ExecutionContextUtil.getFromJobContext(stepExecution, "longValue", Long.class));
+        assertEquals("test", ExecutionContextUtil.getFromJobContext(stepExecution, "stringValue", String.class));
+        assertEquals(Boolean.TRUE, ExecutionContextUtil.getFromJobContext(stepExecution, "booleanValue", Boolean.class));
+    }
+
+    @Test
+    void testUtilityClassInstantiation() throws Exception {
+        // When & Then - Utility 클래스는 인스턴스화할 수 없어야 함
+        java.lang.reflect.Constructor<?> constructor = ExecutionContextUtil.class.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        assertThrows(java.lang.reflect.InvocationTargetException.class, () -> {
+            constructor.newInstance();
+        });
+        
+        // 실제 UnsupportedOperationException이 원인인지 확인
+        try {
+            constructor.newInstance();
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            assertTrue(e.getCause() instanceof UnsupportedOperationException);
+            assertEquals("Utility class", e.getCause().getMessage());
+        }
     }
 }

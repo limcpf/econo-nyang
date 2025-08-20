@@ -12,12 +12,13 @@ import java.util.List;
  */
 @Configuration
 @EnableConfigurationProperties
-@ConfigurationProperties(prefix = "")
+@ConfigurationProperties(prefix = "rss")
 public class RssSourcesConfig {
 
     private List<RssSource> sources = new ArrayList<>();
-    private GlobalConfig global = new GlobalConfig();
     private FilterConfig filters = new FilterConfig();
+    private CollectionConfig collection = new CollectionConfig();
+    private TimeConfig time = new TimeConfig();
 
     public List<RssSource> getSources() {
         return sources;
@@ -27,14 +28,6 @@ public class RssSourcesConfig {
         this.sources = sources;
     }
 
-    public GlobalConfig getGlobal() {
-        return global;
-    }
-
-    public void setGlobal(GlobalConfig global) {
-        this.global = global;
-    }
-
     public FilterConfig getFilters() {
         return filters;
     }
@@ -42,19 +35,33 @@ public class RssSourcesConfig {
     public void setFilters(FilterConfig filters) {
         this.filters = filters;
     }
+    
+    public CollectionConfig getCollection() {
+        return collection;
+    }
+
+    public void setCollection(CollectionConfig collection) {
+        this.collection = collection;
+    }
+    
+    public TimeConfig getTime() {
+        return time;
+    }
+
+    public void setTime(TimeConfig time) {
+        this.time = time;
+    }
 
     /**
      * 개별 RSS 소스 설정
      */
     public static class RssSource {
         private String name;
-        private String code;
         private String url;
-        private double weight = 1.0;
         private boolean enabled = true;
-        private int timeout = 10000;
-        private int retryCount = 3;
-        private String description;
+        private String category;
+        private int updateIntervalMinutes = 30;
+        private int priority = 1;
 
         // Getters and Setters
         public String getName() {
@@ -65,28 +72,12 @@ public class RssSourcesConfig {
             this.name = name;
         }
 
-        public String getCode() {
-            return code;
-        }
-
-        public void setCode(String code) {
-            this.code = code;
-        }
-
         public String getUrl() {
             return url;
         }
 
         public void setUrl(String url) {
             this.url = url;
-        }
-
-        public double getWeight() {
-            return weight;
-        }
-
-        public void setWeight(double weight) {
-            this.weight = weight;
         }
 
         public boolean isEnabled() {
@@ -97,80 +88,28 @@ public class RssSourcesConfig {
             this.enabled = enabled;
         }
 
-        public int getTimeout() {
-            return timeout;
+        public String getCategory() {
+            return category;
         }
 
-        public void setTimeout(int timeout) {
-            this.timeout = timeout;
+        public void setCategory(String category) {
+            this.category = category;
         }
 
-        public int getRetryCount() {
-            return retryCount;
+        public int getUpdateIntervalMinutes() {
+            return updateIntervalMinutes;
         }
 
-        public void setRetryCount(int retryCount) {
-            this.retryCount = retryCount;
+        public void setUpdateIntervalMinutes(int updateIntervalMinutes) {
+            this.updateIntervalMinutes = updateIntervalMinutes;
         }
 
-        public String getDescription() {
-            return description;
+        public int getPriority() {
+            return priority;
         }
 
-        public void setDescription(String description) {
-            this.description = description;
-        }
-    }
-
-    /**
-     * 전역 설정
-     */
-    public static class GlobalConfig {
-        private String userAgent = "EconDigest/1.0";
-        private int defaultTimeout = 10000;
-        private int defaultRetryCount = 3;
-        private int maxArticlesPerSource = 20;
-        private int minPublishInterval = 3600;
-
-        // Getters and Setters
-        public String getUserAgent() {
-            return userAgent;
-        }
-
-        public void setUserAgent(String userAgent) {
-            this.userAgent = userAgent;
-        }
-
-        public int getDefaultTimeout() {
-            return defaultTimeout;
-        }
-
-        public void setDefaultTimeout(int defaultTimeout) {
-            this.defaultTimeout = defaultTimeout;
-        }
-
-        public int getDefaultRetryCount() {
-            return defaultRetryCount;
-        }
-
-        public void setDefaultRetryCount(int defaultRetryCount) {
-            this.defaultRetryCount = defaultRetryCount;
-        }
-
-        public int getMaxArticlesPerSource() {
-            return maxArticlesPerSource;
-        }
-
-        public void setMaxArticlesPerSource(int maxArticlesPerSource) {
-            this.maxArticlesPerSource = maxArticlesPerSource;
-        }
-
-        public int getMinPublishInterval() {
-            return minPublishInterval;
-        }
-
-        public void setMinPublishInterval(int minPublishInterval) {
-            this.minPublishInterval = minPublishInterval;
+        public void setPriority(int priority) {
+            this.priority = priority;
         }
     }
 
@@ -180,6 +119,8 @@ public class RssSourcesConfig {
     public static class FilterConfig {
         private List<String> excludeKeywords = new ArrayList<>();
         private List<String> includeKeywords = new ArrayList<>();
+        private int minTitleLength = 10;
+        private int maxTitleLength = 200;
 
         // Getters and Setters
         public List<String> getExcludeKeywords() {
@@ -196,6 +137,169 @@ public class RssSourcesConfig {
 
         public void setIncludeKeywords(List<String> includeKeywords) {
             this.includeKeywords = includeKeywords;
+        }
+
+        public int getMinTitleLength() {
+            return minTitleLength;
+        }
+
+        public void setMinTitleLength(int minTitleLength) {
+            this.minTitleLength = minTitleLength;
+        }
+
+        public int getMaxTitleLength() {
+            return maxTitleLength;
+        }
+
+        public void setMaxTitleLength(int maxTitleLength) {
+            this.maxTitleLength = maxTitleLength;
+        }
+    }
+
+    /**
+     * 수집 설정
+     */
+    public static class CollectionConfig {
+        private int maxArticlesPerSource = 50;
+        private int connectionTimeoutSec = 10;
+        private int readTimeoutSec = 30;
+        private int maxRetries = 3;
+        private int retryDelayMs = 2000;
+        private String userAgent = "EconDigest-RSS-Bot/1.0";
+        private DeduplicationConfig deduplication = new DeduplicationConfig();
+
+        // Getters and Setters
+        public int getMaxArticlesPerSource() {
+            return maxArticlesPerSource;
+        }
+
+        public void setMaxArticlesPerSource(int maxArticlesPerSource) {
+            this.maxArticlesPerSource = maxArticlesPerSource;
+        }
+
+        public int getConnectionTimeoutSec() {
+            return connectionTimeoutSec;
+        }
+
+        public void setConnectionTimeoutSec(int connectionTimeoutSec) {
+            this.connectionTimeoutSec = connectionTimeoutSec;
+        }
+
+        public int getReadTimeoutSec() {
+            return readTimeoutSec;
+        }
+
+        public void setReadTimeoutSec(int readTimeoutSec) {
+            this.readTimeoutSec = readTimeoutSec;
+        }
+
+        public int getMaxRetries() {
+            return maxRetries;
+        }
+
+        public void setMaxRetries(int maxRetries) {
+            this.maxRetries = maxRetries;
+        }
+
+        public int getRetryDelayMs() {
+            return retryDelayMs;
+        }
+
+        public void setRetryDelayMs(int retryDelayMs) {
+            this.retryDelayMs = retryDelayMs;
+        }
+
+        public String getUserAgent() {
+            return userAgent;
+        }
+
+        public void setUserAgent(String userAgent) {
+            this.userAgent = userAgent;
+        }
+
+        public DeduplicationConfig getDeduplication() {
+            return deduplication;
+        }
+
+        public void setDeduplication(DeduplicationConfig deduplication) {
+            this.deduplication = deduplication;
+        }
+    }
+
+    /**
+     * 중복 제거 설정
+     */
+    public static class DeduplicationConfig {
+        private boolean enableUrlDedup = true;
+        private boolean enableTitleDedup = true;
+        private double titleSimilarityThreshold = 0.85;
+        private boolean dedupWithinSourceOnly = false;
+
+        // Getters and Setters
+        public boolean isEnableUrlDedup() {
+            return enableUrlDedup;
+        }
+
+        public void setEnableUrlDedup(boolean enableUrlDedup) {
+            this.enableUrlDedup = enableUrlDedup;
+        }
+
+        public boolean isEnableTitleDedup() {
+            return enableTitleDedup;
+        }
+
+        public void setEnableTitleDedup(boolean enableTitleDedup) {
+            this.enableTitleDedup = enableTitleDedup;
+        }
+
+        public double getTitleSimilarityThreshold() {
+            return titleSimilarityThreshold;
+        }
+
+        public void setTitleSimilarityThreshold(double titleSimilarityThreshold) {
+            this.titleSimilarityThreshold = titleSimilarityThreshold;
+        }
+
+        public boolean isDedupWithinSourceOnly() {
+            return dedupWithinSourceOnly;
+        }
+
+        public void setDedupWithinSourceOnly(boolean dedupWithinSourceOnly) {
+            this.dedupWithinSourceOnly = dedupWithinSourceOnly;
+        }
+    }
+
+    /**
+     * 시간 설정
+     */
+    public static class TimeConfig {
+        private String defaultTimeZone = "Asia/Seoul";
+        private int maxArticleAgeHours = 72;
+        private List<String> dateFormats = new ArrayList<>();
+
+        // Getters and Setters
+        public String getDefaultTimeZone() {
+            return defaultTimeZone;
+        }
+
+        public void setDefaultTimeZone(String defaultTimeZone) {
+            this.defaultTimeZone = defaultTimeZone;
+        }
+
+        public int getMaxArticleAgeHours() {
+            return maxArticleAgeHours;
+        }
+
+        public void setMaxArticleAgeHours(int maxArticleAgeHours) {
+            this.maxArticleAgeHours = maxArticleAgeHours;
+        }
+
+        public List<String> getDateFormats() {
+            return dateFormats;
+        }
+
+        public void setDateFormats(List<String> dateFormats) {
+            this.dateFormats = dateFormats;
         }
     }
 }

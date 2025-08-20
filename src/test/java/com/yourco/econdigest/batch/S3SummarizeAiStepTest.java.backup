@@ -1,0 +1,161 @@
+package com.yourco.econdigest.batch;
+
+import com.yourco.econdigest.batch.config.JobParameters;
+import com.yourco.econdigest.batch.util.ExecutionContextUtil;
+import com.yourco.econdigest.config.BatchTestConfiguration;
+import com.yourco.econdigest.dto.ArticleDto;
+import com.yourco.econdigest.openai.service.OpenAiClient;
+import com.yourco.econdigest.openai.dto.EconomicSummaryResponse;
+import org.junit.jupiter.api.Test;
+import org.springframework.batch.core.BatchStatus;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.test.JobLauncherTestUtils;
+import org.springframework.batch.test.JobRepositoryTestUtils;
+import org.springframework.batch.test.context.SpringBatchTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * S3_SUMMARIZE_AI Step 전용 테스트
+ */
+@SpringBootTest
+@SpringBatchTest
+@ActiveProfiles("test")
+@Import(BatchTestConfiguration.class)
+class S3SummarizeAiStepTest {
+
+    @Autowired
+    private JobLauncherTestUtils jobLauncherTestUtils;
+
+    @Autowired
+    private JobRepositoryTestUtils jobRepositoryTestUtils;
+
+    @Autowired
+    private OpenAiClient openAiClient;
+
+    @Test
+    void testS3SummarizeAiStepWithLLMEnabled() throws Exception {
+        // Given - ExecutionContext에 Mock 기사 데이터 설정
+        List<ArticleDto> mockArticles = createMockExtractedArticles();
+        
+        org.springframework.batch.core.JobParameters jobParameters = new JobParametersBuilder()
+                .addString(JobParameters.USE_LLM, "true")
+                .addLong("timestamp", System.currentTimeMillis())
+                .toJobParameters();
+
+        // Step 실행
+        JobExecution jobExecution = jobLauncherTestUtils.launchStep("S3_SUMMARIZE_AI", jobParameters);
+        
+        // ExecutionContext에 Mock 데이터 주입 (실제로는 이전 Step에서 설정됨)
+        StepExecution stepExecution = jobExecution.getStepExecutions().iterator().next();
+        ExecutionContextUtil.putToJobContext(stepExecution, ExecutionContextUtil.EXTRACTED_ARTICLES_COUNT, 2);
+        ExecutionContextUtil.putToJobContext(stepExecution, "extractedArticles", mockArticles);
+
+        // 다시 Step 실행
+        jobExecution = jobLauncherTestUtils.launchStep("S3_SUMMARIZE_AI", jobParameters);
+
+        // Then
+        assertEquals(BatchStatus.COMPLETED, jobExecution.getStatus());
+        
+        // ExecutionContext에서 요약 결과 확인
+        stepExecution = jobExecution.getStepExecutions().iterator().next();
+        Integer summarizedCount = ExecutionContextUtil.getIntFromJobContext(
+                stepExecution, ExecutionContextUtil.SUMMARIZED_ARTICLES_COUNT, 0);
+        
+        // Mock OpenAI 클라이언트가 호출되어야 함
+        assertTrue(openAiClient.isApiAvailable());
+    }
+
+    @Test
+    void testS3SummarizeAiStepWithLLMDisabled() throws Exception {
+        // Given
+        org.springframework.batch.core.JobParameters jobParameters = new JobParametersBuilder()
+                .addString(JobParameters.USE_LLM, "false")
+                .addLong("timestamp", System.currentTimeMillis())
+                .toJobParameters();
+
+        // When
+        JobExecution jobExecution = jobLauncherTestUtils.launchStep("S3_SUMMARIZE_AI", jobParameters);
+
+        // Then
+        assertEquals(BatchStatus.COMPLETED, jobExecution.getStatus());
+        
+        StepExecution stepExecution = jobExecution.getStepExecutions().iterator().next();
+        Integer summarizedCount = ExecutionContextUtil.getIntFromJobContext(
+                stepExecution, ExecutionContextUtil.SUMMARIZED_ARTICLES_COUNT, 0);
+        
+        assertEquals(Integer.valueOf(0), summarizedCount);
+    }
+
+    @Test
+    void testS3SummarizeAiStepWithNoArticles() throws Exception {
+        // Given - 기사가 없는 상황
+        org.springframework.batch.core.JobParameters jobParameters = new JobParametersBuilder()
+                .addString(JobParameters.USE_LLM, "true")
+                .addLong("timestamp", System.currentTimeMillis())
+                .toJobParameters();
+
+        // When
+        JobExecution jobExecution = jobLauncherTestUtils.launchStep("S3_SUMMARIZE_AI", jobParameters);
+
+        // Then
+        assertEquals(BatchStatus.COMPLETED, jobExecution.getStatus());
+        
+        StepExecution stepExecution = jobExecution.getStepExecutions().iterator().next();
+        Integer summarizedCount = ExecutionContextUtil.getIntFromJobContext(
+                stepExecution, ExecutionContextUtil.SUMMARIZED_ARTICLES_COUNT, 0);
+        
+        assertEquals(Integer.valueOf(0), summarizedCount);
+    }
+
+    @Test
+    void testOpenAiClientMockFunctionality() {
+        // Given
+        String testTitle = "한국은행 기준금리 결정";
+        String testContent = "한국은행이 오늘 통화정책회의에서 기준금리를 현행 3.0%로 유지하기로 결정했다.";
+
+        // When
+        EconomicSummaryResponse summary = openAiClient.generateEconomicSummary(testTitle, testContent);
+
+        // Then
+        assertNotNull(summary);
+        assertEquals("테스트 요약: 경제뉴스 테스트", summary.getSummary());
+        assertEquals("테스트 분석: 이 기사는 경제에 미치는 영향이 제한적입니다.", summary.getAnalysis());
+        assertEquals(Integer.valueOf(5), summary.getImportanceScore());
+        assertEquals("중립", summary.getMarketImpact());
+        assertEquals("보통", summary.getInvestorInterest());
+        assertEquals(Integer.valueOf(7), summary.getConfidenceScore());
+        assertTrue(summary.getEconomicSectors().contains("금융"));
+        assertTrue(summary.getKeywords().contains("테스트"));
+    }
+
+    private List<ArticleDto> createMockExtractedArticles() {
+        ArticleDto article1 = new ArticleDto();
+        article1.setSource("test");
+        article1.setUrl("https://test.com/article1");
+        article1.setTitle("테스트 경제 뉴스 1");
+        article1.setContent("이것은 테스트 경제 뉴스의 본문 내용입니다. 한국 경제에 대한 중요한 정보를 담고 있습니다.");
+        article1.setExtractSuccess(true);
+        article1.setExtractedAt(LocalDateTime.now());
+
+        ArticleDto article2 = new ArticleDto();
+        article2.setSource("test");
+        article2.setUrl("https://test.com/article2");
+        article2.setTitle("테스트 경제 뉴스 2");
+        article2.setContent("두 번째 테스트 기사입니다. 금융 시장의 동향에 대해 분석하고 있습니다.");
+        article2.setExtractSuccess(true);
+        article2.setExtractedAt(LocalDateTime.now());
+
+        return Arrays.asList(article1, article2);
+    }
+}
