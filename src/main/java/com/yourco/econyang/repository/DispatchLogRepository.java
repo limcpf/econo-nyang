@@ -92,11 +92,11 @@ public interface DispatchLogRepository extends JpaRepository<DispatchLog, Long> 
     /**
      * 일별 발송 통계
      */
-    @Query("SELECT DATE(dl.createdAt), dl.status, COUNT(dl) " +
-           "FROM DispatchLog dl " +
-           "WHERE dl.createdAt BETWEEN :startTime AND :endTime " +
-           "GROUP BY DATE(dl.createdAt), dl.status " +
-           "ORDER BY DATE(dl.createdAt) DESC, dl.status")
+    @Query(value = "SELECT DATE(created_at), status, COUNT(*) " +
+           "FROM dispatch_log " +
+           "WHERE created_at BETWEEN :startTime AND :endTime " +
+           "GROUP BY DATE(created_at), status " +
+           "ORDER BY DATE(created_at) DESC, status", nativeQuery = true)
     List<Object[]> getDailyStatistics(@Param("startTime") LocalDateTime startTime, 
                                      @Param("endTime") LocalDateTime endTime);
 

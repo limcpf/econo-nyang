@@ -12,10 +12,13 @@ public final class ExecutionContextUtil {
     public static final String FETCHED_ARTICLES_COUNT = "fetchedArticlesCount";
     public static final String EXTRACTED_ARTICLES_COUNT = "extractedArticlesCount";
     public static final String SUMMARIZED_ARTICLES_COUNT = "summarizedArticlesCount";
+    public static final String RANKED_ARTICLES_COUNT = "rankedArticlesCount";
+    public static final String DISPATCHED_COUNT = "dispatchedCount";
     public static final String FINAL_DIGEST_ID = "finalDigestId";
     public static final String DISPATCH_STATUS = "dispatchStatus";
     public static final String PROCESSING_START_TIME = "processingStartTime";
     public static final String PROCESSING_END_TIME = "processingEndTime";
+    public static final String PROCESSING_TIME = "processingTime";
     public static final String ERROR_COUNT = "errorCount";
     public static final String WARNING_COUNT = "warningCount";
     

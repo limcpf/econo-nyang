@@ -14,7 +14,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5434/econyang}
     username: ${DB_USER:econyang_user}
-    password: your-secure-password
+    password: ${DB_PASS:your-secure-password}
     driver-class-name: org.postgresql.Driver
   
   jpa:
@@ -35,7 +35,8 @@ spring:
   batch:
     job:
       enabled: false
-    initialize-schema: never
+    jdbc:
+      initialize-schema: always
 
   jackson:
     serialization:

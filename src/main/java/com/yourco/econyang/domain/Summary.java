@@ -49,14 +49,17 @@ public class Summary {
     @Column(name = "why_it_matters", nullable = false)
     private String whyItMatters;
 
-    @Column(name = "bullets", columnDefinition = "text")
-    private String bullets;
+    @Type(type = "string-array")
+    @Column(name = "bullets", columnDefinition = "text[]")
+    private String[] bullets;
 
-    @Column(name = "glossary", columnDefinition = "text")
+    @Type(type = "jsonb")
+    @Column(name = "glossary", columnDefinition = "jsonb")
     private String glossaryJson;
 
-    @Column(name = "evidence_idx", columnDefinition = "text")
-    private String evidenceIdx;
+    @Type(type = "int-array")
+    @Column(name = "evidence_idx", columnDefinition = "int[]")
+    private int[] evidenceIdx;
 
     @Column(name = "score", precision = 10, scale = 4)
     private BigDecimal score;
@@ -103,7 +106,7 @@ public class Summary {
         return whyItMatters;
     }
 
-    public String getBullets() {
+    public String[] getBullets() {
         return bullets;
     }
 
@@ -111,7 +114,7 @@ public class Summary {
         return glossaryJson;
     }
 
-    public String getEvidenceIdx() {
+    public int[] getEvidenceIdx() {
         return evidenceIdx;
     }
 
@@ -140,7 +143,7 @@ public class Summary {
         this.whyItMatters = whyItMatters;
     }
 
-    public void setBullets(String bullets) {
+    public void setBullets(String[] bullets) {
         this.bullets = bullets;
     }
 
@@ -148,7 +151,7 @@ public class Summary {
         this.glossaryJson = glossaryJson;
     }
 
-    public void setEvidenceIdx(String evidenceIdx) {
+    public void setEvidenceIdx(int[] evidenceIdx) {
         this.evidenceIdx = evidenceIdx;
     }
 
@@ -190,14 +193,14 @@ public class Summary {
             this.bullets = null;
             return;
         }
-        this.bullets = String.join(",", bulletsList);
+        this.bullets = bulletsList.toArray(new String[0]);
     }
 
     public List<String> getBulletsList() {
-        if (bullets == null || bullets.trim().isEmpty()) {
+        if (bullets == null) {
             return new ArrayList<>();
         }
-        return java.util.Arrays.asList(bullets.split(","));
+        return java.util.Arrays.asList(bullets);
     }
 
     @Override
