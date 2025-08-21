@@ -52,6 +52,50 @@ public class ArticleService {
     }
 
     /**
+     * 새로운 기사들을 중복 방지하여 저장 (ExecutionContext용)
+     * @param articleDtos 저장할 기사 DTO 목록
+     * @return 저장된 기사들의 ID 목록
+     */
+    @Transactional
+    public List<Long> saveNewArticles(List<ArticleDto> articleDtos) {
+        return articleDtos.stream()
+                .map(this::saveOrUpdate)
+                .map(Article::getId)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * ID 목록으로 기사 조회 (ExecutionContext용)
+     * @param articleIds 조회할 기사 ID 목록
+     * @return 조회된 기사 목록
+     */
+    public List<Article> findByIds(List<Long> articleIds) {
+        return articleRepository.findAllById(articleIds);
+    }
+
+    /**
+     * 본문이 추출된 기사들만 조회 (ExecutionContext용)
+     * @param articleIds 조회할 기사 ID 목록
+     * @return 본문이 추출된 기사 목록
+     */
+    public List<Article> findExtractedByIds(List<Long> articleIds) {
+        return articleRepository.findAllById(articleIds)
+                .stream()
+                .filter(article -> article.getContent() != null && !article.getContent().trim().isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 단일 기사 저장
+     * @param article 저장할 기사
+     * @return 저장된 기사
+     */
+    @Transactional
+    public Article save(Article article) {
+        return articleRepository.save(article);
+    }
+
+    /**
      * URL로 기사 조회
      */
     public Optional<Article> findByUrl(String url) {
@@ -122,9 +166,14 @@ public class ArticleService {
         article.setPublishedAt(dto.getPublishedAt());
         article.setAuthor(dto.getAuthor());
         
+        // description을 rawExcerpt로 매핑
+        if (dto.getDescription() != null && !dto.getDescription().trim().isEmpty()) {
+            article.setRawExcerpt(dto.getDescription().trim());
+        }
+        
         // 본문 내용이 있으면 업데이트 (null이면 기존 값 유지)
         if (dto.getContent() != null && !dto.getContent().trim().isEmpty()) {
-            article.setRawExcerpt(dto.getContent().trim());
+            article.setContent(dto.getContent().trim());
         }
     }
 

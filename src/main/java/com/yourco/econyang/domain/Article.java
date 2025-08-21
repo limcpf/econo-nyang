@@ -35,6 +35,15 @@ public class Article {
     @Column(name = "raw_excerpt")
     private String rawExcerpt;
 
+    @Column(name = "content", columnDefinition = "text")
+    private String content;
+
+    @Column(name = "extracted_at")
+    private LocalDateTime extractedAt;
+
+    @Column(name = "extract_error")
+    private String extractError;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -87,6 +96,18 @@ public class Article {
         return rawExcerpt;
     }
 
+    public String getContent() {
+        return content;
+    }
+
+    public LocalDateTime getExtractedAt() {
+        return extractedAt;
+    }
+
+    public String getExtractError() {
+        return extractError;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -118,6 +139,18 @@ public class Article {
 
     public void setRawExcerpt(String rawExcerpt) {
         this.rawExcerpt = rawExcerpt;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public void setExtractedAt(LocalDateTime extractedAt) {
+        this.extractedAt = extractedAt;
+    }
+
+    public void setExtractError(String extractError) {
+        this.extractError = extractError;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {

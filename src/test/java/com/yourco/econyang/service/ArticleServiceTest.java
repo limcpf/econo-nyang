@@ -206,6 +206,102 @@ class ArticleServiceTest {
         verify(articleRepository).deleteOlderThan(cutoffTime);
     }
 
+    @Test
+    void testSaveNewArticles() {
+        // Given
+        ArticleDto dto1 = createArticleDto("https://test.com/new1", "새 기사 1");
+        ArticleDto dto2 = createArticleDto("https://test.com/new2", "새 기사 2");
+        List<ArticleDto> dtos = Arrays.asList(dto1, dto2);
+        
+        // Mock으로 ID를 가진 Article을 반환하도록 설정
+        when(articleRepository.findByUrl("https://test.com/new1")).thenReturn(Optional.empty());
+        when(articleRepository.findByUrl("https://test.com/new2")).thenReturn(Optional.empty());
+        when(articleRepository.save(any(Article.class)))
+                .thenAnswer(invocation -> {
+                    Article article = invocation.getArgument(0);
+                    // Reflection을 사용해서 ID 설정 (테스트용)
+                    try {
+                        java.lang.reflect.Field idField = Article.class.getDeclaredField("id");
+                        idField.setAccessible(true);
+                        idField.set(article, 1L);
+                    } catch (Exception e) {
+                        // ID 설정 실패 시 기본값 사용
+                    }
+                    return article;
+                })
+                .thenAnswer(invocation -> {
+                    Article article = invocation.getArgument(0);
+                    try {
+                        java.lang.reflect.Field idField = Article.class.getDeclaredField("id");
+                        idField.setAccessible(true);
+                        idField.set(article, 2L);
+                    } catch (Exception e) {
+                        // ID 설정 실패 시 기본값 사용
+                    }
+                    return article;
+                });
+
+        // When
+        List<Long> result = articleService.saveNewArticles(dtos);
+
+        // Then
+        assertEquals(2, result.size());
+        verify(articleRepository, times(2)).findByUrl(anyString());
+        verify(articleRepository, times(2)).save(any(Article.class));
+    }
+
+    @Test
+    void testFindByIds() {
+        // Given
+        List<Long> ids = Arrays.asList(1L, 2L);
+        List<Article> expected = Arrays.asList(sampleArticle);
+        when(articleRepository.findAllById(ids)).thenReturn(expected);
+
+        // When
+        List<Article> result = articleService.findByIds(ids);
+
+        // Then
+        assertEquals(expected, result);
+        verify(articleRepository).findAllById(ids);
+    }
+
+    @Test
+    void testFindExtractedByIds() {
+        // Given
+        List<Long> ids = Arrays.asList(1L, 2L);
+        
+        Article articleWithContent = new Article("한국경제", "https://test.com/1", "제목1");
+        articleWithContent.setContent("본문 내용이 있는 기사");
+        
+        Article articleWithoutContent = new Article("매일경제", "https://test.com/2", "제목2");
+        // content is null
+        
+        List<Article> allArticles = Arrays.asList(articleWithContent, articleWithoutContent);
+        when(articleRepository.findAllById(ids)).thenReturn(allArticles);
+
+        // When
+        List<Article> result = articleService.findExtractedByIds(ids);
+
+        // Then
+        assertEquals(1, result.size());
+        assertEquals(articleWithContent, result.get(0));
+        assertNotNull(result.get(0).getContent());
+        verify(articleRepository).findAllById(ids);
+    }
+
+    @Test
+    void testSaveArticle() {
+        // Given
+        when(articleRepository.save(sampleArticle)).thenReturn(sampleArticle);
+
+        // When
+        Article result = articleService.save(sampleArticle);
+
+        // Then
+        assertEquals(sampleArticle, result);
+        verify(articleRepository).save(sampleArticle);
+    }
+
     private ArticleDto createArticleDto(String url, String title) {
         ArticleDto dto = new ArticleDto();
         dto.setSource("테스트소스");
