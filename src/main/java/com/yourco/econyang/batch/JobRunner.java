@@ -38,14 +38,28 @@ public class JobRunner implements CommandLineRunner {
         if (autoRun) {
             System.out.println("=== ECON_DAILY_DIGEST Job 자동 실행 시작 ===");
             
-            // 기본 Job Parameters 설정
+            // 커맨드라인 인자에서 파라미터 추출
+            String targetDate = extractParameter(args, "--targetDate=", "yesterday");
+            String maxArticles = extractParameter(args, "--maxArticles=", "5");
+            String dryRun = extractParameter(args, "--dryRun=", "true");
+            String useLLM = extractParameter(args, "--useLLM=", "false");
+            String useRealRss = extractParameter(args, "--useRealRss=", "false");
+            
+            // Job Parameters 설정
             JobParameters jobParameters = new JobParametersBuilder()
-                    .addString("targetDate", "yesterday")
-                    .addString("maxArticles", "5")
-                    .addString("dryRun", "true")
-                    .addString("useLLM", "false")
+                    .addString("targetDate", targetDate)
+                    .addString("maxArticles", maxArticles)
+                    .addString("dryRun", dryRun)
+                    .addString("useLLM", useLLM)
+                    .addString("useRealRss", useRealRss)
                     .addLong("timestamp", System.currentTimeMillis()) // 유니크한 실행을 위한 타임스탬프
                     .toJobParameters();
+            
+            System.out.println("Job Parameters: targetDate=" + targetDate + 
+                             ", maxArticles=" + maxArticles + 
+                             ", dryRun=" + dryRun + 
+                             ", useLLM=" + useLLM + 
+                             ", useRealRss=" + useRealRss);
             
             try {
                 jobLauncher.run(econDailyDigestJob, jobParameters);
@@ -58,5 +72,17 @@ public class JobRunner implements CommandLineRunner {
             System.out.println("배치 Job 자동 실행이 비활성화되어 있습니다.");
             System.out.println("실행하려면 --batch.auto-run=true 인자를 추가하세요.");
         }
+    }
+    
+    /**
+     * 커맨드라인 인자에서 특정 파라미터 값 추출
+     */
+    private String extractParameter(String[] args, String paramPrefix, String defaultValue) {
+        for (String arg : args) {
+            if (arg.startsWith(paramPrefix)) {
+                return arg.substring(paramPrefix.length());
+            }
+        }
+        return defaultValue;
     }
 }

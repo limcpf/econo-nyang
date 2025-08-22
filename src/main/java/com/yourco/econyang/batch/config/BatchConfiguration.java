@@ -6,6 +6,7 @@ import com.yourco.econyang.dto.ArticleDto;
 import com.yourco.econyang.openai.service.OpenAiClient;
 import com.yourco.econyang.service.ArticleService;
 import com.yourco.econyang.service.ContentExtractionService;
+import com.yourco.econyang.service.DiscordService;
 import com.yourco.econyang.service.RssFeedService;
 
 import java.util.ArrayList;
@@ -51,6 +52,9 @@ public class BatchConfiguration {
 
     @Autowired
     private ArticleService articleService;
+
+    @Autowired
+    private DiscordService discordService;
 
     /**
      * ECON_DAILY_DIGEST Job 정의
@@ -281,13 +285,13 @@ public class BatchConfiguration {
     }
 
     /**
-     * S5_DISPATCH Step - Discord 발송 (더미)
+     * S5_DISPATCH Step - Discord 발송
      */
     @Bean
     public Step step5Dispatch() {
         return stepBuilderFactory.get("S5_DISPATCH")
                 .tasklet((contribution, chunkContext) -> {
-                    System.out.println("=== S5_DISPATCH: Discord 발송 시작 (더미 모드) ===");
+                    System.out.println("=== S5_DISPATCH: Discord 발송 시작 ===");
                     
                     Integer rankedCount = ExecutionContextUtil.getFromJobContext(
                             chunkContext.getStepContext().getStepExecution(),
@@ -301,16 +305,50 @@ public class BatchConfiguration {
                             chunkContext.getStepContext().getJobParameters().get("dryRun").toString() : 
                             "true";
                     
+                    @SuppressWarnings("unchecked")
+                    List<Long> articleIds = ExecutionContextUtil.getFromJobContext(
+                            chunkContext.getStepContext().getStepExecution(),
+                            "articleIds",
+                            List.class
+                    );
+                    
+                    int dispatchedCount = 0;
+                    
                     if ("true".equals(dryRun)) {
                         System.out.println("DRY RUN 모드: 실제 Discord 발송 건너뜀");
+                        dispatchedCount = rankedCount != null ? rankedCount : 0;
                     } else {
-                        System.out.println("Discord 발송 완료 (더미)");
+                        // Discord 설정 확인
+                        if (!discordService.isConfigured()) {
+                            System.err.println("Discord Webhook URL이 설정되지 않았습니다. DRY RUN 모드로 전환합니다.");
+                            dispatchedCount = rankedCount != null ? rankedCount : 0;
+                        } else {
+                            // 실제 Discord 발송
+                            try {
+                                // 더미 다이제스트 메시지 생성 (Task 2.2에서 실제 템플릿으로 교체 예정)
+                                String digest = createDummyDigest(articleIds, rankedCount);
+                                
+                                // Discord 발송
+                                boolean success = discordService.sendMessage(digest, "EconDigest Bot");
+                                
+                                if (success) {
+                                    dispatchedCount = rankedCount != null ? rankedCount : 0;
+                                    System.out.println("Discord 발송 성공: " + dispatchedCount + "개 항목");
+                                } else {
+                                    System.err.println("Discord 발송 실패");
+                                }
+                                
+                            } catch (Exception e) {
+                                System.err.println("Discord 발송 중 오류 발생: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
                     }
                     
                     ExecutionContextUtil.putToJobContext(
                             chunkContext.getStepContext().getStepExecution(),
                             ExecutionContextUtil.DISPATCHED_COUNT,
-                            rankedCount != null ? rankedCount : 0
+                            dispatchedCount
                     );
                     
                     // 처리 완료 시간 기록
@@ -332,9 +370,49 @@ public class BatchConfiguration {
                         );
                     }
                     
-                    System.out.println("S5_DISPATCH 완료: " + (rankedCount != null ? rankedCount : 0) + "개 다이제스트 발송 완료 (더미)");
+                    System.out.println("S5_DISPATCH 완료: " + dispatchedCount + "개 다이제스트 발송 완료");
                     return RepeatStatus.FINISHED;
                 })
                 .build();
+    }
+    
+    /**
+     * 더미 다이제스트 메시지 생성 (Task 2.2에서 실제 템플릿으로 교체 예정)
+     */
+    private String createDummyDigest(List<Long> articleIds, Integer rankedCount) {
+        StringBuilder digest = new StringBuilder();
+        
+        digest.append("# 📊 경제뉴스 다이제스트\n");
+        digest.append("**생성시간**: ").append(java.time.LocalDateTime.now().format(
+                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))).append("\n");
+        digest.append("**처리된 기사**: ").append(rankedCount != null ? rankedCount : 0).append("개\n\n");
+        
+        if (articleIds != null && !articleIds.isEmpty()) {
+            // 실제 기사 정보 조회 및 표시 (간단한 형태)
+            List<Article> articles = articleService.findByIds(articleIds);
+            int count = 1;
+            for (Article article : articles) {
+                if (count > (rankedCount != null ? rankedCount : 5)) break;
+                
+                digest.append("## ").append(count).append(". ").append(article.getTitle()).append("\n");
+                digest.append("**출처**: ").append(article.getSource()).append("\n");
+                if (article.getPublishedAt() != null) {
+                    digest.append("**발행**: ").append(article.getPublishedAt().format(
+                            java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm"))).append("\n");
+                }
+                if (article.getUrl() != null) {
+                    digest.append("**링크**: ").append(article.getUrl()).append("\n");
+                }
+                digest.append("\n");
+                count++;
+            }
+        } else {
+            digest.append("처리된 기사가 없습니다.\n");
+        }
+        
+        digest.append("---\n");
+        digest.append("*Generated by EconDigest Batch System*");
+        
+        return digest.toString();
     }
 }
