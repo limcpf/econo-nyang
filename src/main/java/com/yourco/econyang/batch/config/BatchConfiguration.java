@@ -96,15 +96,35 @@ public class BatchConfiguration {
                     
                     if ("true".equals(useRealRss)) {
                         try {
-                            // 실제 RSS 수집 (향후 Task 1.2에서 구현)
-                            System.out.println("실제 RSS 수집 모드 - 향후 Task 1.2에서 구현 예정");
-                            // List<ArticleDto> articles = rssFeedService.fetchAllArticles(...);
-                            // articleIds = articleService.saveNewArticles(articles);
+                            // 실제 RSS 수집
+                            System.out.println("실제 RSS 수집 모드 시작");
                             
-                            // 임시로 더미 데이터 사용
-                            articleIds = createDummyArticles();
+                            // Job Parameters에서 최대 기사 수 가져오기
+                            String maxArticlesParam = chunkContext.getStepContext()
+                                    .getJobParameters()
+                                    .get("maxArticles") != null ? 
+                                    chunkContext.getStepContext().getJobParameters().get("maxArticles").toString() : 
+                                    "10";
+                            int maxArticles = Integer.parseInt(maxArticlesParam);
+                            
+                            // RSS 소스에서 기사 수집
+                            List<ArticleDto> articles = rssFeedService.fetchAllArticles(
+                                    rssSourcesConfig.getSources(), maxArticles);
+                            
+                            // 키워드 필터링 적용
+                            List<ArticleDto> filteredArticles = rssFeedService.applyFilters(
+                                    articles, rssSourcesConfig.getFilters());
+                            
+                            // 데이터베이스에 저장
+                            articleIds = articleService.saveNewArticles(filteredArticles);
+                            
+                            System.out.println("실제 RSS 수집 완료: " + articles.size() + "개 수집 → " + 
+                                             filteredArticles.size() + "개 필터링 → " + 
+                                             articleIds.size() + "개 저장");
+                            
                         } catch (Exception e) {
                             System.err.println("RSS 수집 실패, 더미 데이터로 폴백: " + e.getMessage());
+                            e.printStackTrace();
                             articleIds = createDummyArticles();
                         }
                     } else {

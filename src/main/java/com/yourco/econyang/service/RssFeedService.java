@@ -22,8 +22,11 @@ import java.util.stream.Collectors;
 @Service
 public class RssFeedService {
     
-    private static final int MAX_RETRIES = 3;
-    private static final long RETRY_DELAY_MS = 1000;
+    private final RssSourcesConfig rssSourcesConfig;
+    
+    public RssFeedService(RssSourcesConfig rssSourcesConfig) {
+        this.rssSourcesConfig = rssSourcesConfig;
+    }
     
     /**
      * 단일 RSS 소스에서 기사 목록을 수집
@@ -31,19 +34,22 @@ public class RssFeedService {
     public List<ArticleDto> fetchArticles(RssSourcesConfig.RssSource source) {
         List<ArticleDto> articles = new ArrayList<>();
         
-        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        int maxRetries = rssSourcesConfig.getCollection().getMaxRetries();
+        int retryDelayMs = rssSourcesConfig.getCollection().getRetryDelayMs();
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 SyndFeed feed = fetchFeed(source);
                 articles = parseFeed(feed, source);
                 break; // 성공 시 루프 종료
                 
             } catch (Exception e) {
-                System.err.println("RSS 피드 수집 실패 (시도 " + attempt + "/" + MAX_RETRIES + "): " + 
+                System.err.println("RSS 피드 수집 실패 (시도 " + attempt + "/" + maxRetries + "): " + 
                                  source.getUrl() + " - " + e.getMessage());
                 
-                if (attempt < MAX_RETRIES) {
+                if (attempt < maxRetries) {
                     try {
-                        TimeUnit.MILLISECONDS.sleep(RETRY_DELAY_MS * attempt);
+                        TimeUnit.MILLISECONDS.sleep(retryDelayMs * attempt);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         break;
@@ -76,9 +82,8 @@ public class RssFeedService {
             allArticles.addAll(articles);
         }
         
-        // URL 기반 중복 제거
-        Set<ArticleDto> uniqueArticles = new LinkedHashSet<>(allArticles);
-        List<ArticleDto> result = new ArrayList<>(uniqueArticles);
+        // 중복 제거 (config 기반)
+        List<ArticleDto> result = removeDuplicates(allArticles, rssSourcesConfig.getCollection().getDeduplication());
         
         // 발행 시간 기준 내림차순 정렬 (최신순)
         result.sort((a, b) -> {
@@ -104,12 +109,15 @@ public class RssFeedService {
         URL feedUrl = new URL(source.getUrl());
         URLConnection connection = feedUrl.openConnection();
         
-        // 타임아웃 설정 (기본값 사용)
-        connection.setConnectTimeout(10000); // 10초
-        connection.setReadTimeout(30000);    // 30초
+        // 타임아웃 설정 (config에서 읽기)
+        int connectTimeoutMs = rssSourcesConfig.getCollection().getConnectionTimeoutSec() * 1000;
+        int readTimeoutMs = rssSourcesConfig.getCollection().getReadTimeoutSec() * 1000;
+        connection.setConnectTimeout(connectTimeoutMs);
+        connection.setReadTimeout(readTimeoutMs);
         
-        // User-Agent 설정
-        connection.setRequestProperty("User-Agent", "EconDigest/1.0 (+https://github.com/yourco/econdigest)");
+        // User-Agent 설정 (config에서 읽기)
+        String userAgent = rssSourcesConfig.getCollection().getUserAgent();
+        connection.setRequestProperty("User-Agent", userAgent);
         connection.setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml");
         
         try (XmlReader reader = new XmlReader(connection)) {
@@ -201,9 +209,23 @@ public class RssFeedService {
         }
         
         return articles.stream()
+                .filter(article -> passesTitleLengthFilter(article, filters))
                 .filter(article -> passesIncludeFilter(article, filters.getIncludeKeywords()))
                 .filter(article -> passesExcludeFilter(article, filters.getExcludeKeywords()))
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * 제목 길이 필터
+     */
+    private boolean passesTitleLengthFilter(ArticleDto article, RssSourcesConfig.FilterConfig filters) {
+        if (article.getTitle() == null) {
+            return false;
+        }
+        
+        int titleLength = article.getTitle().length();
+        return titleLength >= filters.getMinTitleLength() && 
+               titleLength <= filters.getMaxTitleLength();
     }
     
     /**
@@ -234,5 +256,66 @@ public class RssFeedService {
         
         return excludeKeywords.stream()
                 .noneMatch(keyword -> content.contains(keyword.toLowerCase()));
+    }
+    
+    /**
+     * 중복 제거 (URL 및 제목 유사도 기반)
+     */
+    private List<ArticleDto> removeDuplicates(List<ArticleDto> articles, RssSourcesConfig.DeduplicationConfig dedupConfig) {
+        if (articles.isEmpty()) {
+            return articles;
+        }
+        
+        List<ArticleDto> result = new ArrayList<>();
+        Set<String> seenUrls = new HashSet<>();
+        
+        for (ArticleDto article : articles) {
+            boolean isDuplicate = false;
+            
+            // URL 기반 중복 제거
+            if (dedupConfig.isEnableUrlDedup()) {
+                if (seenUrls.contains(article.getUrl())) {
+                    isDuplicate = true;
+                } else {
+                    seenUrls.add(article.getUrl());
+                }
+            }
+            
+            // 제목 유사도 기반 중복 제거
+            if (!isDuplicate && dedupConfig.isEnableTitleDedup()) {
+                for (ArticleDto existing : result) {
+                    if (calculateTitleSimilarity(article.getTitle(), existing.getTitle()) >= dedupConfig.getTitleSimilarityThreshold()) {
+                        isDuplicate = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!isDuplicate) {
+                result.add(article);
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 제목 유사도 계산 (간단한 Jaccard similarity)
+     */
+    private double calculateTitleSimilarity(String title1, String title2) {
+        if (title1 == null || title2 == null) {
+            return 0.0;
+        }
+        
+        Set<String> words1 = new HashSet<>(Arrays.asList(title1.toLowerCase().split("\\s+")));
+        Set<String> words2 = new HashSet<>(Arrays.asList(title2.toLowerCase().split("\\s+")));
+        
+        Set<String> intersection = new HashSet<>(words1);
+        intersection.retainAll(words2);
+        
+        Set<String> union = new HashSet<>(words1);
+        union.addAll(words2);
+        
+        return union.isEmpty() ? 0.0 : (double) intersection.size() / union.size();
     }
 }

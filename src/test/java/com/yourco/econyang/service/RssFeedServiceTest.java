@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 /**
  * RssFeedService 단위 테스트
@@ -20,11 +22,16 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(MockitoExtension.class)
 class RssFeedServiceTest {
 
+    @Mock
+    private RssSourcesConfig rssSourcesConfig;
+
     @InjectMocks
     private RssFeedService rssFeedService;
 
     private RssSourcesConfig.RssSource testSource;
     private RssSourcesConfig.FilterConfig testFilters;
+    private RssSourcesConfig.CollectionConfig collectionConfig;
+    private RssSourcesConfig.DeduplicationConfig deduplicationConfig;
 
     @BeforeEach
     void setUp() {
@@ -43,6 +50,24 @@ class RssFeedServiceTest {
         testFilters.setExcludeKeywords(Arrays.asList("스포츠", "연예"));
         testFilters.setMinTitleLength(10);
         testFilters.setMaxTitleLength(200);
+
+        // Collection config setup
+        collectionConfig = new RssSourcesConfig.CollectionConfig();
+        collectionConfig.setMaxRetries(3);
+        collectionConfig.setRetryDelayMs(1000);
+        collectionConfig.setConnectionTimeoutSec(10);
+        collectionConfig.setReadTimeoutSec(30);
+        collectionConfig.setUserAgent("EconDigest-Test/1.0");
+
+        // Deduplication config setup
+        deduplicationConfig = new RssSourcesConfig.DeduplicationConfig();
+        deduplicationConfig.setEnableUrlDedup(true);
+        deduplicationConfig.setEnableTitleDedup(true);
+        deduplicationConfig.setTitleSimilarityThreshold(0.85);
+        collectionConfig.setDeduplication(deduplicationConfig);
+
+        // Mock setup
+        when(rssSourcesConfig.getCollection()).thenReturn(collectionConfig);
     }
 
     @Test
@@ -191,5 +216,73 @@ class RssFeedServiceTest {
         articles.add(article4);
 
         return articles;
+    }
+
+    @Test
+    void testApplyFilters_TitleLengthFilter() {
+        // Given
+        List<ArticleDto> articles = new ArrayList<>();
+        
+        // 너무 짧은 제목 (5글자)
+        ArticleDto shortTitle = new ArticleDto();
+        shortTitle.setTitle("짧은제목경제");
+        shortTitle.setDescription("경제 관련");
+        shortTitle.setUrl("https://example.com/short");
+        articles.add(shortTitle);
+        
+        // 적절한 제목 (15글자)
+        ArticleDto goodTitle = new ArticleDto();
+        goodTitle.setTitle("적절한 길이의 경제뉴스 제목입니다");
+        goodTitle.setDescription("경제 관련");
+        goodTitle.setUrl("https://example.com/good");
+        articles.add(goodTitle);
+        
+        // 너무 긴 제목 (300글자)
+        ArticleDto longTitle = new ArticleDto();
+        longTitle.setTitle("매우 긴 제목".repeat(50));
+        longTitle.setDescription("경제 관련");
+        longTitle.setUrl("https://example.com/long");
+        articles.add(longTitle);
+
+        // When
+        List<ArticleDto> result = rssFeedService.applyFilters(articles, testFilters);
+
+        // Then
+        assertEquals(1, result.size());
+        assertEquals("적절한 길이의 경제뉴스 제목입니다", result.get(0).getTitle());
+    }
+
+    @Test 
+    void testApplyFilters_CombinedFilters() {
+        // Given
+        List<ArticleDto> articles = new ArrayList<>();
+        
+        // 모든 조건을 만족하는 기사
+        ArticleDto validArticle = new ArticleDto();
+        validArticle.setTitle("한국 경제 성장률 발표");
+        validArticle.setDescription("올해 경제성장률이 발표되었습니다.");
+        validArticle.setUrl("https://example.com/valid");
+        articles.add(validArticle);
+        
+        // 제외 키워드가 있는 기사
+        ArticleDto excludedArticle = new ArticleDto();
+        excludedArticle.setTitle("경제와 스포츠 투자 전망");
+        excludedArticle.setDescription("경제와 스포츠 관련");
+        excludedArticle.setUrl("https://example.com/excluded");
+        articles.add(excludedArticle);
+        
+        // 포함 키워드가 없는 기사
+        ArticleDto noKeywordArticle = new ArticleDto();
+        noKeywordArticle.setTitle("일반 뉴스 제목입니다");
+        noKeywordArticle.setDescription("일반적인 뉴스");
+        noKeywordArticle.setUrl("https://example.com/nokeyword");
+        articles.add(noKeywordArticle);
+
+        // When
+        List<ArticleDto> result = rssFeedService.applyFilters(articles, testFilters);
+
+        // Then
+        assertEquals(1, result.size());
+        assertEquals("한국 경제 성장률 발표", result.get(0).getTitle());
     }
 }
