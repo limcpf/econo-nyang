@@ -7,8 +7,17 @@ import com.yourco.econyang.openai.service.OpenAiClient;
 import com.yourco.econyang.service.ArticleService;
 import com.yourco.econyang.service.ContentExtractionService;
 import com.yourco.econyang.service.DiscordService;
+import com.yourco.econyang.service.DigestTemplateService;
+import com.yourco.econyang.service.SummaryService;
+import com.yourco.econyang.repository.SummaryRepository;
+import com.yourco.econyang.repository.DailyDigestRepository;
+import com.yourco.econyang.domain.DailyDigest;
+import com.yourco.econyang.domain.Summary;
 import com.yourco.econyang.service.RssFeedService;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import com.yourco.econyang.domain.Article;
@@ -55,6 +64,18 @@ public class BatchConfiguration {
 
     @Autowired
     private DiscordService discordService;
+    
+    @Autowired
+    private DigestTemplateService digestTemplateService;
+    
+    @Autowired
+    private SummaryRepository summaryRepository;
+    
+    @Autowired
+    private DailyDigestRepository dailyDigestRepository;
+    
+    @Autowired
+    private SummaryService summaryService;
 
     /**
      * ECON_DAILY_DIGEST Job 정의
@@ -305,15 +326,60 @@ public class BatchConfiguration {
         }
         return extractedCount;
     }
+    
+    /**
+     * 더미 다이제스트 처리
+     */
+    private int processDummyDigest(LocalDate digestDate, String templateName) {
+        // 더미로 3-5개 기사 선별한 것으로 가정
+        return 4;
+    }
+    
+    /**
+     * 더미 다이제스트 본문 생성
+     */
+    private String generateDummyDigestBody(int articleCount) {
+        StringBuilder body = new StringBuilder();
+        body.append("# 📈 경제뉴스 다이제스트 - ").append(LocalDate.now()).append("\n\n");
+        body.append("총 ").append(articleCount).append("개의 주요 경제 뉴스를 선별했습니다.\n\n");
+        body.append("---\n\n");
+        
+        for (int i = 1; i <= articleCount; i++) {
+            body.append("## ").append(i).append("🌟 더미 경제뉴스 제목 ").append(i).append("\n\n");
+            body.append("📍 **출처**: 더미소스 | ⏰ **시간**: 09:00\n\n");
+            body.append("📝 **요약**: 이것은 더미 요약입니다. 경제 동향에 대한 중요한 내용이 포함되어 있습니다.\n\n");
+            body.append("🔍 **AI 분석**: 더미 AI 분석 내용입니다.\n\n");
+            body.append("📈 **시장 영향**: 보통 | 👥 **투자자 관심**: 높음\n\n");
+            body.append("🏷️ **키워드**: 경제, 뉴스, 더미\n\n");
+            body.append("📖 [원문 보기](https://example.com/dummy-").append(i).append(")\n\n");
+            body.append("---\n\n");
+        }
+        
+        body.append("📊 **오늘의 통계**\n");
+        body.append("- 📰 수집된 뉴스: ").append(articleCount * 2).append("개\n");
+        body.append("- ✅ 분석 완료: ").append(articleCount).append("개\n");
+        body.append("- ⭐ 평균 중요도: 7.5/10\n\n");
+        body.append("🤖 **더미 모드로 생성됨** | ").append(java.time.LocalDateTime.now());
+        
+        return body.toString();
+    }
+    
+    /**
+     * 더미 AI 요약 처리
+     */
+    private int processDummyAiSummary(int extractedCount) {
+        // 더미로 추출된 기사 수와 동일하게 처리
+        return Math.min(extractedCount, 5); // 최대 5개
+    }
 
     /**
-     * S3_SUMMARIZE_AI Step - AI 요약 생성 (더미)
+     * S3_SUMMARIZE_AI Step - AI 요약 생성
      */
     @Bean
     public Step step3SummarizeAi() {
         return stepBuilderFactory.get("S3_SUMMARIZE_AI")
                 .tasklet((contribution, chunkContext) -> {
-                    System.out.println("=== S3_SUMMARIZE_AI: AI 요약 생성 시작 (더미 모드) ===");
+                    System.out.println("=== S3_SUMMARIZE_AI: AI 요약 생성 시작 ===");
                     
                     Integer extractedCount = ExecutionContextUtil.getFromJobContext(
                             chunkContext.getStepContext().getStepExecution(),
@@ -321,7 +387,69 @@ public class BatchConfiguration {
                             Integer.class
                     );
                     
-                    int summarizedCount = extractedCount != null ? extractedCount : 0;
+                    // Job Parameter에서 AI 사용 여부 확인
+                    String useLLM = chunkContext.getStepContext()
+                            .getJobParameters()
+                            .get("useLLM") != null ? 
+                            chunkContext.getStepContext().getJobParameters().get("useLLM").toString() : 
+                            "false";
+                    
+                    @SuppressWarnings("unchecked")
+                    List<Long> articleIds = ExecutionContextUtil.getFromJobContext(
+                            chunkContext.getStepContext().getStepExecution(),
+                            "articleIds",
+                            List.class
+                    );
+                    
+                    int summarizedCount = 0;
+                    
+                    if ("true".equals(useLLM) && summaryService.isAiSummaryAvailable()) {
+                        // 실제 AI 요약 생성
+                        System.out.println("실제 AI 요약 생성 모드");
+                        
+                        try {
+                            // DB에서 본문이 있는 기사들 조회
+                            List<Article> articles = articleService.findByIds(articleIds != null ? articleIds : new ArrayList<>());
+                            
+                            // 본문이 있는 기사만 필터링
+                            List<Article> articlesWithContent = articles.stream()
+                                    .filter(article -> article.getContent() != null && 
+                                           !article.getContent().trim().isEmpty())
+                                    .collect(java.util.stream.Collectors.toList());
+                            
+                            if (!articlesWithContent.isEmpty()) {
+                                System.out.println("AI 요약 생성 대상: " + articlesWithContent.size() + "개 기사");
+                                
+                                // 배치 AI 요약 생성
+                                List<Summary> summaries = summaryService.generateSummaries(articlesWithContent);
+                                summarizedCount = summaries.size();
+                                
+                                // 성공한 요약 개수 계산
+                                long successCount = summaries.stream()
+                                        .mapToLong(summary -> summary.getScore() != null && 
+                                            summary.getScore().compareTo(BigDecimal.valueOf(3)) > 0 ? 1 : 0)
+                                        .sum();
+                                
+                                System.out.println("AI 요약 생성 완료: " + successCount + "/" + summarizedCount + " 성공");
+                                
+                                // API 사용량 통계 출력
+                                summaryService.printApiUsageStats();
+                            } else {
+                                System.out.println("본문이 있는 기사가 없어서 AI 요약을 건너뜁니다.");
+                                summarizedCount = 0;
+                            }
+                            
+                        } catch (Exception e) {
+                            System.err.println("AI 요약 생성 실패, 더미 모드로 폴백: " + e.getMessage());
+                            e.printStackTrace();
+                            summarizedCount = processDummyAiSummary(extractedCount != null ? extractedCount : 0);
+                        }
+                        
+                    } else {
+                        // 더미 AI 요약 모드
+                        System.out.println("더미 AI 요약 모드 (useLLM=false 또는 API 미사용)");
+                        summarizedCount = processDummyAiSummary(extractedCount != null ? extractedCount : 0);
+                    }
                     
                     ExecutionContextUtil.putToJobContext(
                             chunkContext.getStepContext().getStepExecution(),
@@ -329,20 +457,20 @@ public class BatchConfiguration {
                             summarizedCount
                     );
                     
-                    System.out.println("S3_SUMMARIZE_AI 완료: " + summarizedCount + "개 기사 요약 완료 (더미)");
+                    System.out.println("S3_SUMMARIZE_AI 완료: " + summarizedCount + "개 기사 요약 완료");
                     return RepeatStatus.FINISHED;
                 })
                 .build();
     }
 
     /**
-     * S4_RANK_COMPOSE Step - 중요도 산정 및 다이제스트 조립 (더미)
+     * S4_RANK_COMPOSE Step - 중요도 산정 및 다이제스트 조립
      */
     @Bean
     public Step step4RankCompose() {
         return stepBuilderFactory.get("S4_RANK_COMPOSE")
                 .tasklet((contribution, chunkContext) -> {
-                    System.out.println("=== S4_RANK_COMPOSE: 중요도 산정 및 다이제스트 조립 시작 (더미 모드) ===");
+                    System.out.println("=== S4_RANK_COMPOSE: 중요도 산정 및 다이제스트 조립 시작 ===");
                     
                     Integer summarizedCount = ExecutionContextUtil.getFromJobContext(
                             chunkContext.getStepContext().getStepExecution(),
@@ -350,8 +478,95 @@ public class BatchConfiguration {
                             Integer.class
                     );
                     
-                    // 상위 5개만 선별한 것으로 가정
-                    int rankedCount = Math.min(summarizedCount != null ? summarizedCount : 0, 5);
+                    // Job Parameter에서 다이제스트 생성 모드 확인
+                    String useLLM = chunkContext.getStepContext()
+                            .getJobParameters()
+                            .get("useLLM") != null ? 
+                            chunkContext.getStepContext().getJobParameters().get("useLLM").toString() : 
+                            "false";
+                    
+                    String templateName = chunkContext.getStepContext()
+                            .getJobParameters()
+                            .get("templateName") != null ? 
+                            chunkContext.getStepContext().getJobParameters().get("templateName").toString() : 
+                            "default";
+                    
+                    LocalDate digestDate = LocalDate.now();
+                    int rankedCount = 0;
+                    String digestTitle = "";
+                    String digestBody = "";
+                    
+                    if ("true".equals(useLLM)) {
+                        // 실제 Summary 데이터로 다이제스트 생성
+                        System.out.println("실제 다이제스트 생성 모드 (Summary 기반)");
+                        
+                        try {
+                            // 최근 생성된 고품질 Summary 조회 (점수 5.0 이상)
+                            LocalDateTime startTime = digestDate.atStartOfDay();
+                            LocalDateTime endTime = startTime.plusDays(1);
+                            
+                            List<Summary> summaries = summaryRepository.findForDigest(
+                                    BigDecimal.valueOf(5.0), startTime, endTime);
+                            
+                            if (summaries.size() > 10) {
+                                summaries = summaries.subList(0, 10); // 최대 10개로 제한
+                            }
+                            
+                            rankedCount = summaries.size();
+                            
+                            if (rankedCount > 0) {
+                                // DigestTemplateService로 다이제스트 생성
+                                digestTitle = digestTemplateService.getTemplateTitle(templateName);
+                                digestBody = digestTemplateService.generateDigest(summaries, templateName, "markdown");
+                                
+                                System.out.println("다이제스트 생성 완료: " + rankedCount + "개 Summary 기반");
+                            } else {
+                                // Summary가 없으면 빈 다이제스트 생성
+                                digestTitle = "경제뉴스 다이제스트 - " + digestDate;
+                                digestBody = digestTemplateService.generateDigest(new ArrayList<>(), templateName, "markdown");
+                                
+                                System.out.println("Summary가 없어서 빈 다이제스트 생성");
+                            }
+                            
+                        } catch (Exception e) {
+                            System.err.println("실제 다이제스트 생성 실패, 더미 모드로 폴백: " + e.getMessage());
+                            e.printStackTrace();
+                            rankedCount = processDummyDigest(digestDate, templateName);
+                            digestTitle = "경제뉴스 다이제스트 - " + digestDate + " (더미)";
+                            digestBody = generateDummyDigestBody(rankedCount);
+                        }
+                    } else {
+                        // 더미 다이제스트 생성
+                        System.out.println("더미 다이제스트 생성 모드");
+                        rankedCount = processDummyDigest(digestDate, templateName);
+                        digestTitle = "경제뉴스 다이제스트 - " + digestDate + " (더미)";
+                        digestBody = generateDummyDigestBody(rankedCount);
+                    }
+                    
+                    // DailyDigest DB 저장
+                    try {
+                        DailyDigest existingDigest = dailyDigestRepository.findByDigestDate(digestDate).orElse(null);
+                        
+                        if (existingDigest != null) {
+                            // 기존 다이제스트 업데이트
+                            existingDigest.setTitle(digestTitle);
+                            existingDigest.setBodyMarkdown(digestBody);
+                            existingDigest.updateCounts(rankedCount, rankedCount);
+                            dailyDigestRepository.save(existingDigest);
+                            
+                            System.out.println("기존 다이제스트 업데이트: " + digestDate);
+                        } else {
+                            // 새 다이제스트 생성
+                            DailyDigest newDigest = new DailyDigest(digestDate, digestTitle, digestBody);
+                            newDigest.updateCounts(rankedCount, rankedCount);
+                            dailyDigestRepository.save(newDigest);
+                            
+                            System.out.println("새 다이제스트 생성: " + digestDate);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("다이제스트 DB 저장 실패: " + e.getMessage());
+                        e.printStackTrace();
+                    }
                     
                     ExecutionContextUtil.putToJobContext(
                             chunkContext.getStepContext().getStepExecution(),
@@ -359,7 +574,19 @@ public class BatchConfiguration {
                             rankedCount
                     );
                     
-                    System.out.println("S4_RANK_COMPOSE 완료: " + rankedCount + "개 기사 선별 및 다이제스트 조립 완료 (더미)");
+                    ExecutionContextUtil.putToJobContext(
+                            chunkContext.getStepContext().getStepExecution(),
+                            "digestTitle",
+                            digestTitle
+                    );
+                    
+                    ExecutionContextUtil.putToJobContext(
+                            chunkContext.getStepContext().getStepExecution(),
+                            "digestBody",
+                            digestBody
+                    );
+                    
+                    System.out.println("S4_RANK_COMPOSE 완료: " + rankedCount + "개 기사 선별 및 다이제스트 조립 완료");
                     return RepeatStatus.FINISHED;
                 })
                 .build();

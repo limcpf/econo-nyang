@@ -45,6 +45,7 @@ public class JobRunner implements CommandLineRunner {
             String useLLM = extractParameter(args, "--useLLM=", "false");
             String useRealRss = extractParameter(args, "--useRealRss=", "false");
             String useRealExtraction = extractParameter(args, "--useRealExtraction=", "false");
+            String templateName = extractParameter(args, "--templateName=", "default");
             
             // Job Parameters 설정
             JobParameters jobParameters = new JobParametersBuilder()
@@ -54,6 +55,7 @@ public class JobRunner implements CommandLineRunner {
                     .addString("useLLM", useLLM)
                     .addString("useRealRss", useRealRss)
                     .addString("useRealExtraction", useRealExtraction)
+                    .addString("templateName", templateName)
                     .addLong("timestamp", System.currentTimeMillis()) // 유니크한 실행을 위한 타임스탬프
                     .toJobParameters();
             
@@ -62,7 +64,8 @@ public class JobRunner implements CommandLineRunner {
                              ", dryRun=" + dryRun + 
                              ", useLLM=" + useLLM + 
                              ", useRealRss=" + useRealRss + 
-                             ", useRealExtraction=" + useRealExtraction);
+                             ", useRealExtraction=" + useRealExtraction + 
+                             ", templateName=" + templateName);
             
             try {
                 jobLauncher.run(econDailyDigestJob, jobParameters);
