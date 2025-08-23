@@ -37,46 +37,37 @@ RSS 수집 → 본문 추출 → AI 요약 → 중요도 산정 → Discord 발�
 
 ## 🚀 빠른 시작
 
-### 1. 사전 요구사항
+### 완전한 설치 및 운영 가이드
+👉 **[운영 가이드](./docs/06-운영-가이드.md)**에서 상세한 설치, 설정, 운영 방법을 확인하세요!
 
-- Java 8+ 
-- Docker & Docker Compose
-- OpenAI API Key
-- Discord Webhook URL
-
-### 2. 환경 설정
+### 간단 실행 (요약)
 
 ```bash
-# 저장소 클론
+# 1. 프로젝트 클론 및 환경 설정
 git clone https://github.com/limcpf/econo-nyang.git
 cd econo-nyang
-
-# 환경 변수 설정
 cp .env.example .env
-vi .env  # OpenAI API Key, Discord Webhook 등 설정
-```
+# .env 파일에서 OPENAI_API_KEY, DISCORD_WEBHOOK_URL 설정
 
-### 3. 데이터베이스 실행
-
-```bash
-# PostgreSQL & Redis 컨테이너 실행
-docker-compose up -d
-
-# 데이터베이스 마이그레이션
+# 2. 데이터베이스 실행 및 마이그레이션  
+docker-compose up -d postgres
+sleep 30
 ./mvnw flyway:migrate
+
+# 3. 애플리케이션 빌드 및 실행
+./mvnw clean package -DskipTests
+java -jar target/econyang-0.0.1-SNAPSHOT.jar \
+  --spring.profiles.active=prod \
+  --job.name=ECON_DAILY_DIGEST \
+  --maxArticles=10 --useLLM=true
 ```
 
-### 4. 애플리케이션 실행
+### 개발 모드 실행
 
 ```bash
-# 개발 모드 실행
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
-
-# 배치 작업 수동 실행
-java -jar target/econyang-*.jar \
-  --job.name=ECON_DAILY_DIGEST \
-  targetDate=2025-01-20 \
-  maxArticles=10
+# 개발 환경에서 테스트
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev \
+  -Dspring-boot.run.arguments="--dryRun=true"
 ```
 
 ## 📋 배치 작업 단계
@@ -151,10 +142,15 @@ ORDER BY date DESC;
 
 ## 📚 문서
 
+### 📖 사용자 가이드
+- [🚀 **운영 가이드**](./docs/06-운영-가이드.md) - **프로덕션 환경 구동 및 운영 매뉴얼**
+- [🛠️ 개발환경 구성 가이드](./docs/03-Week1-doc.md)
+
+### 📋 개발 문서  
 - [📋 PRD (Product Requirements Document)](./docs/00-PRD-20250817.md)
 - [🏗️ 상세 설계서](./docs/01-Detail-Structure-20250817.md) 
-- [✅ 1주차 개발 현황](./docs/02-Week1-Tasks-20250817.md)
-- [🛠️ 개발환경 구성 가이드](./docs/03-Week1-doc.md)
+- [✅ Week1 개발 현황](./docs/02-Week1-Tasks-20250817.md)
+- [✅ Week2 개발 현황](./docs/05-Week2-Tasks.md)
 - [📖 개발 가이드라인](./CLAUDE.md)
 
 ## 🔒 보안 및 프라이버시
