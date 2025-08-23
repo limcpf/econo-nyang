@@ -176,7 +176,7 @@ public class BatchConfiguration {
     }
 
     /**
-     * S2_EXTRACT Step - 본문 추출 및 정제 (DB 기반)
+     * S2_EXTRACT Step - 본문 추출 및 정제
      */
     @Bean
     public Step step2Extract() {
@@ -201,16 +201,64 @@ public class BatchConfiguration {
                     List<Article> articles = articleService.findByIds(articleIds);
                     System.out.println("DB에서 " + articles.size() + "개 기사 로드");
                     
-                    // 본문 추출 (현재는 더미 처리)
+                    // Job Parameter에서 실제 추출 여부 확인
+                    String useRealExtraction = chunkContext.getStepContext()
+                            .getJobParameters()
+                            .get("useRealExtraction") != null ? 
+                            chunkContext.getStepContext().getJobParameters().get("useRealExtraction").toString() : 
+                            "false";
+                    
                     int extractedCount = 0;
-                    for (Article article : articles) {
-                        if (article.getContent() == null) {
-                            // 더미 본문 설정 (Task 2.1에서 실제 추출 구현 예정)
-                            article.setContent("더미 본문 내용: " + article.getTitle() + "에 대한 상세한 기사 내용입니다. 경제 동향과 관련된 중요한 정보가 포함되어 있습니다.");
-                            article.setExtractedAt(java.time.LocalDateTime.now());
-                            articleService.save(article);
-                            extractedCount++;
+                    
+                    if ("true".equals(useRealExtraction)) {
+                        // 실제 본문 추출
+                        System.out.println("실제 본문 추출 모드 시작");
+                        
+                        try {
+                            // Article → ArticleDto 변환
+                            List<ArticleDto> articleDtos = articles.stream()
+                                    .filter(article -> article.getContent() == null || article.getContent().trim().isEmpty())
+                                    .map(this::convertToDto)
+                                    .collect(java.util.stream.Collectors.toList());
+                            
+                            if (!articleDtos.isEmpty()) {
+                                System.out.println("본문 추출 대상: " + articleDtos.size() + "개 기사");
+                                
+                                // 병렬 본문 추출 실행
+                                List<ArticleDto> extractedDtos = contentExtractionService.extractContents(articleDtos);
+                                
+                                // 결과를 DB에 저장
+                                for (ArticleDto dto : extractedDtos) {
+                                    articleService.findByUrl(dto.getUrl()).ifPresent(article -> {
+                                        if (dto.isExtractSuccess()) {
+                                            article.setContent(dto.getContent());
+                                            article.setExtractedAt(dto.getExtractedAt());
+                                            article.setExtractError(null);
+                                        } else {
+                                            article.setExtractError(dto.getExtractError());
+                                            article.setExtractedAt(dto.getExtractedAt());
+                                        }
+                                        articleService.save(article);
+                                    });
+                                    
+                                    if (dto.isExtractSuccess()) {
+                                        extractedCount++;
+                                    }
+                                }
+                            } else {
+                                System.out.println("모든 기사가 이미 본문을 가지고 있습니다.");
+                                extractedCount = articles.size();
+                            }
+                            
+                        } catch (Exception e) {
+                            System.err.println("본문 추출 실패, 더미 모드로 폴백: " + e.getMessage());
+                            e.printStackTrace();
+                            extractedCount = processDummyExtraction(articles);
                         }
+                    } else {
+                        // 더미 본문 설정
+                        System.out.println("더미 본문 추출 모드");
+                        extractedCount = processDummyExtraction(articles);
                     }
                     
                     ExecutionContextUtil.putToJobContext(
@@ -223,6 +271,39 @@ public class BatchConfiguration {
                     return RepeatStatus.FINISHED;
                 })
                 .build();
+    }
+    
+    /**
+     * Article → ArticleDto 변환
+     */
+    private ArticleDto convertToDto(Article article) {
+        ArticleDto dto = new ArticleDto();
+        dto.setSource(article.getSource());
+        dto.setUrl(article.getUrl());
+        dto.setTitle(article.getTitle());
+        dto.setDescription(article.getRawExcerpt());
+        dto.setAuthor(article.getAuthor());
+        dto.setPublishedAt(article.getPublishedAt());
+        dto.setContent(article.getContent());
+        dto.setExtractedAt(article.getExtractedAt());
+        return dto;
+    }
+    
+    /**
+     * 더미 본문 추출 처리
+     */
+    private int processDummyExtraction(List<Article> articles) {
+        int extractedCount = 0;
+        for (Article article : articles) {
+            if (article.getContent() == null || article.getContent().trim().isEmpty()) {
+                article.setContent("더미 본문 내용: " + article.getTitle() + "에 대한 상세한 기사 내용입니다. 경제 동향과 관련된 중요한 정보가 포함되어 있습니다.");
+                article.setExtractedAt(java.time.LocalDateTime.now());
+                article.setExtractError(null);
+                articleService.save(article);
+                extractedCount++;
+            }
+        }
+        return extractedCount;
     }
 
     /**

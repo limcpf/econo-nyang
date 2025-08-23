@@ -24,6 +24,17 @@ public class ContentExtractionService {
     private static final int MAX_RETRIES = 2;
     private static final long RETRY_DELAY_MS = 1000;
     
+    // User-Agent 순환을 위한 목록
+    private static final String[] USER_AGENTS = {
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+        "Mozilla/5.0 (compatible; EconDigest/1.0; +https://econdigest.com/bot)"
+    };
+    
+    private int currentUserAgentIndex = 0;
+    
     // 한국 언론사별 본문 선택자 매핑
     private static final String[][] CONTENT_SELECTORS = {
         // 한국경제
@@ -100,36 +111,71 @@ public class ContentExtractionService {
     }
     
     /**
-     * 여러 기사의 본문을 추출 (병렬 처리 없이 순차 처리)
+     * 여러 기사의 본문을 추출 (병렬 처리)
      */
     public List<ArticleDto> extractContents(List<ArticleDto> articles) {
-        List<ArticleDto> results = new ArrayList<>();
-        
-        for (ArticleDto article : articles) {
-            ArticleDto extracted = extractContent(article);
-            results.add(extracted);
-            
-            // 서버 부하 방지를 위한 짧은 대기
-            try {
-                TimeUnit.MILLISECONDS.sleep(500);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
+        if (articles == null || articles.isEmpty()) {
+            return new ArrayList<>();
         }
         
+        System.out.println("병렬 본문 추출 시작: " + articles.size() + "개 기사");
+        long startTime = System.currentTimeMillis();
+        
+        // 병렬 스트림을 사용한 본문 추출
+        List<ArticleDto> results = articles.parallelStream()
+                .map(this::extractContentWithDelay)
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+        
+        long endTime = System.currentTimeMillis();
+        double processingTime = (endTime - startTime) / 1000.0;
+        
+        // 결과 통계
+        long successCount = results.stream().mapToLong(article -> article.isExtractSuccess() ? 1 : 0).sum();
+        double successRate = (double) successCount / results.size() * 100;
+        
+        System.out.println("병렬 본문 추출 완료: " + successCount + "/" + results.size() + 
+                         " 성공 (" + String.format("%.1f", successRate) + "%), " + 
+                         String.format("%.2f", processingTime) + "초 소요");
+        
         return results;
+    }
+    
+    /**
+     * 단일 기사 추출 (지연 처리 포함)
+     */
+    private ArticleDto extractContentWithDelay(ArticleDto article) {
+        try {
+            // 서버 부하 방지를 위한 랜덤 지연 (200-800ms)
+            long delay = 200 + (long)(Math.random() * 600);
+            TimeUnit.MILLISECONDS.sleep(delay);
+            
+            return extractContent(article);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            article.setExtractSuccess(false);
+            article.setExtractError("Thread interrupted during extraction");
+            return article;
+        }
     }
     
     /**
      * URL에서 실제 HTML을 가져와서 본문을 추출
      */
     private String fetchAndExtractContent(String url, String source) throws IOException {
+        // User-Agent 순환 사용
+        String userAgent = getNextUserAgent();
+        
         // Jsoup으로 웹 페이지 가져오기
         Document doc = Jsoup.connect(url)
-                .userAgent("Mozilla/5.0 (compatible; EconDigest/1.0)")
+                .userAgent(userAgent)
                 .timeout(DEFAULT_TIMEOUT)
                 .followRedirects(true)
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+                .header("Accept-Language", "ko-KR,ko;q=0.9,en;q=0.8")
+                .header("Accept-Encoding", "gzip, deflate")
+                .header("DNT", "1")
+                .header("Connection", "keep-alive")
+                .header("Upgrade-Insecure-Requests", "1")
                 .get();
         
         // 불필요한 요소들 제거
@@ -257,5 +303,14 @@ public class ContentExtractionService {
                 .sum();
         
         return (double) successCount / articles.size();
+    }
+    
+    /**
+     * 다음 User-Agent 반환 (순환)
+     */
+    private synchronized String getNextUserAgent() {
+        String userAgent = USER_AGENTS[currentUserAgentIndex];
+        currentUserAgentIndex = (currentUserAgentIndex + 1) % USER_AGENTS.length;
+        return userAgent;
     }
 }
