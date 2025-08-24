@@ -52,30 +52,54 @@ logging:
 
 # RSS 소스 설정
 sources:
-  - name: "한국경제"
-    code: "hankyung"
-    url: "https://www.hankyung.com/feed/economy"
-    weight: 1.0
+  - name: "Reuters Business"
+    code: "reuters_business"
+    url: "https://feeds.reuters.com/reuters/businessNews"
+    weight: 1.2
     enabled: true
-    timeout: 10000
+    timeout: 15000
     retryCount: 3
-    description: "한국경제 경제 섹션 RSS"
-  - name: "매일경제"
-    code: "maeil"
-    url: "https://www.mk.co.kr/rss/30000001/"
-    weight: 1.0
+    description: "Reuters Business News RSS Feed"
+  - name: "BBC Business"
+    code: "bbc_business"
+    url: "http://feeds.bbci.co.uk/news/business/rss.xml"
+    weight: 1.1
     enabled: true
-    timeout: 10000
+    timeout: 15000
     retryCount: 3
-    description: "매일경제 경제 섹션 RSS"
-  - name: "Google 뉴스 - 한국경제"
-    code: "google_kr_econ"
-    url: "https://news.google.com/rss/search?q=%ED%95%9C%EA%B5%AD%EA%B2%BD%EC%A0%9C&hl=ko&gl=KR&ceid=KR:ko"
-    weight: 0.8
+    description: "BBC Business News RSS Feed"
+  - name: "Financial Times"
+    code: "ft_companies"
+    url: "https://www.ft.com/companies?format=rss"
+    weight: 1.3
     enabled: true
     timeout: 15000
     retryCount: 2
-    description: "Google 뉴스 한국경제 검색 결과"
+    description: "Financial Times Companies RSS Feed"
+  - name: "Associated Press Business"
+    code: "ap_business"
+    url: "https://feeds.apnews.com/rss/apf-business.rss"
+    weight: 1.0
+    enabled: true
+    timeout: 15000
+    retryCount: 3
+    description: "Associated Press Business News"
+  - name: "MarketWatch"
+    code: "marketwatch"
+    url: "http://feeds.marketwatch.com/marketwatch/topstories/"
+    weight: 0.9
+    enabled: true
+    timeout: 12000
+    retryCount: 3
+    description: "MarketWatch Top Stories RSS Feed"
+  - name: "CNBC World Business"
+    code: "cnbc_world"
+    url: "https://www.cnbc.com/id/100727362/device/rss/rss.html"
+    weight: 1.0
+    enabled: true
+    timeout: 15000
+    retryCount: 3
+    description: "CNBC World Business News"
 
 global:
   userAgent: "EconoNyang/1.0 🐱"
@@ -86,29 +110,48 @@ global:
 
 filters:
   includeKeywords:
-    - "경제"
-    - "금리"
-    - "투자"
-    - "주식"
-    - "부동산"
-    - "금융"
-    - "기업"
-    - "증시"
-    - "환율"
-    - "인플레이션"
+    - "economy"
+    - "business"
+    - "finance"
+    - "investment"
+    - "market"
+    - "stock"
+    - "trading"
+    - "earnings"
+    - "revenue"
+    - "profit"
     - "GDP"
-    - "수출"
-    - "수입"
-    - "무역"
-    - "산업"
+    - "inflation"
+    - "interest rate"
+    - "federal reserve"
+    - "central bank"
+    - "merger"
+    - "acquisition"
+    - "IPO"
+    - "corporate"
+    - "financial"
+    - "economic"
+    - "fiscal"
+    - "monetary"
+    - "trade"
+    - "export"
+    - "import"
+    - "currency"
+    - "exchange rate"
+    - "banking"
+    - "securities"
+    - "commodities"
   excludeKeywords:
-    - "스포츠"
-    - "연예"
-    - "게임"
-    - "날씨"
-    - "교통"
-    - "사건"
-    - "사고"
+    - "sports"
+    - "entertainment"
+    - "celebrity"
+    - "weather"
+    - "crime"
+    - "accident"
+    - "politics"
+    - "election"
+    - "gaming"
+    - "lifestyle"
 
 app:
   timezone: Asia/Seoul
