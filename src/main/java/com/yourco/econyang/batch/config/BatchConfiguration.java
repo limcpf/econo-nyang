@@ -638,8 +638,18 @@ public class BatchConfiguration {
                         } else {
                             // 실제 Discord 발송
                             try {
-                                // 더미 다이제스트 메시지 생성 (Task 2.2에서 실제 템플릿으로 교체 예정)
-                                String digest = createDummyDigest(articleIds, rankedCount);
+                                // S4_RANK_COMPOSE에서 생성된 실제 다이제스트 사용
+                                String digest = ExecutionContextUtil.getFromJobContext(
+                                        chunkContext.getStepContext().getStepExecution(),
+                                        "digestBody",
+                                        String.class
+                                );
+                                
+                                // 다이제스트가 없으면 폴백으로 더미 생성
+                                if (digest == null || digest.trim().isEmpty()) {
+                                    System.out.println("다이제스트가 없어서 폴백으로 더미 생성");
+                                    digest = createDummyDigest(articleIds, rankedCount);
+                                }
                                 
                                 // Discord 발송
                                 boolean success = discordService.sendMessage(digest, "EconDigest Bot");
@@ -690,7 +700,8 @@ public class BatchConfiguration {
     }
     
     /**
-     * 더미 다이제스트 메시지 생성 (Task 2.2에서 실제 템플릿으로 교체 예정)
+     * 폴백용 더미 다이제스트 메시지 생성
+     * 실제로는 S4_RANK_COMPOSE에서 DigestTemplateService로 생성된 다이제스트를 사용
      */
     private String createDummyDigest(List<Long> articleIds, Integer rankedCount) {
         StringBuilder digest = new StringBuilder();
