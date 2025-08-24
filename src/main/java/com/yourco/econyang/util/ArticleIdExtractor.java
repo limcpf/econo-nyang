@@ -10,9 +10,17 @@ import java.util.regex.Pattern;
  */
 public class ArticleIdExtractor {
     
-    private static final Pattern MAEIL_ECONOMY_PATTERN = Pattern.compile("/rss/(\\d+)/");
+    // 매일경제: URL에서 숫자 ID 추출 (예: /economy/10987654, /english/11400481)
+    private static final Pattern MAEIL_ECONOMY_PATTERN = Pattern.compile("/([0-9]{8,})(?:[/?]|$)");
+    
+    // KOTRA: dataIdx 쿼리 파라미터 (예: ?dataIdx=233281)
     private static final Pattern KOTRA_PATTERN = Pattern.compile("dataIdx=(\\d+)");
-    private static final Pattern INVESTING_PATTERN = Pattern.compile("/(\\d+)$");
+    
+    // Investing.com: 마지막 하이픈 뒤 숫자 (예: israel-strikes-yemeni-capital-sanaa-4207948)
+    private static final Pattern INVESTING_NEWS_PATTERN = Pattern.compile("([^/]+)-(\\d+)(?:/|\\?|#|$)");
+    
+    // Investing.com Analysis: analysis 경로에서 하이픈 뒤 숫자 (예: analysis/jackson-hole-200665775)
+    private static final Pattern INVESTING_ANALYSIS_PATTERN = Pattern.compile("/analysis/[^/]+-([0-9]+)(?:/|\\?|#|$)");
     
     /**
      * RSS 소스별로 기사의 고유 식별자를 추출
@@ -45,17 +53,20 @@ public class ArticleIdExtractor {
     }
     
     /**
-     * 매일경제: URL 패턴에서 숫자 ID 추출
-     * 예: https://www.mk.co.kr/news/economy/10123456
+     * 매일경제: URL 끝 숫자 ID 추출
+     * 예: https://www.mk.co.kr/news/english/11400481 → maeil_11400481
      */
     private static String extractMaeilEconomyId(String url) {
-        // URL 패턴에서 숫자 추출 시도
-        Pattern pattern = Pattern.compile("/(\\d{8,})(?:[/?]|$)");
-        Matcher matcher = pattern.matcher(url);
+        Matcher matcher = MAEIL_ECONOMY_PATTERN.matcher(url);
         
         if (matcher.find()) {
-            return "maeil_" + matcher.group(1);
+            String articleId = matcher.group(1);
+            // 8자리 이상의 숫자만 유효한 기사 ID로 간주
+            if (articleId.length() >= 8) {
+                return "maeil_" + articleId;
+            }
         }
+        
         
         // 패턴에 맞지 않으면 해시 사용
         return generateHashId(url);
@@ -76,16 +87,27 @@ public class ArticleIdExtractor {
     }
     
     /**
-     * Investing.com: URL 마지막 숫자 ID 추출
-     * 예: https://www.investing.com/news/economy/some-news-123456
+     * Investing.com: 마지막 하이픈 뒤 숫자 ID 추출
+     * 예1: https://www.investing.com/news/economy/israel-strikes-yemeni-capital-sanaa-4207948 → investing_4207948
+     * 예2: https://www.investing.com/analysis/jackson-hole-1982-volcker-200665775 → investing_200665775
      */
     private static String extractInvestingId(String url) {
-        // URL에서 숫자 ID 추출 (더 유연한 패턴)
-        Pattern pattern = Pattern.compile("[-/](\\d{7,})(?:[/?#]|$)");
-        Matcher matcher = pattern.matcher(url);
+        // Analysis 경로 우선 체크 (더 구체적인 패턴)
+        if (url.contains("/analysis/")) {
+            Matcher analysisMatcher = INVESTING_ANALYSIS_PATTERN.matcher(url);
+            if (analysisMatcher.find()) {
+                return "investing_" + analysisMatcher.group(1);
+            }
+        }
         
-        if (matcher.find()) {
-            return "investing_" + matcher.group(1);
+        // 일반 뉴스 패턴 체크
+        Matcher newsMatcher = INVESTING_NEWS_PATTERN.matcher(url);
+        if (newsMatcher.find()) {
+            String articleId = newsMatcher.group(2);
+            // 숫자 ID가 충분히 길어야 유효한 기사 ID로 간주
+            if (articleId.length() >= 6) {
+                return "investing_" + articleId;
+            }
         }
         
         return generateHashId(url);

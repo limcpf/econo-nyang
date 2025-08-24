@@ -12,8 +12,8 @@ class ArticleIdExtractorTest {
     void should_extract_maeil_economy_id() {
         // given
         String sourceCode = "maeil_securities";
-        String url1 = "https://www.mk.co.kr/news/economy/10123456";
-        String url2 = "https://www.mk.co.kr/news/stock-market/10987654?from=main";
+        String url1 = "https://www.mk.co.kr/news/english/11400481"; // 실제 매일경제 패턴
+        String url2 = "https://www.mk.co.kr/news/economy/10987654?from=main";
         String url3 = "https://www.mk.co.kr/news/realestate/10555777/";
         
         // when
@@ -22,7 +22,7 @@ class ArticleIdExtractorTest {
         String id3 = ArticleIdExtractor.extractUniqueId(sourceCode, url3);
         
         // then
-        assertEquals("maeil_10123456", id1);
+        assertEquals("maeil_11400481", id1);
         assertEquals("maeil_10987654", id2);
         assertEquals("maeil_10555777", id3);
     }
@@ -31,7 +31,7 @@ class ArticleIdExtractorTest {
     void should_extract_kotra_id() {
         // given
         String sourceCode = "kotra_overseas";
-        String url1 = "https://dream.kotra.or.kr/kotra/view.do?dataIdx=123456";
+        String url1 = "https://dream.kotra.or.kr/user/extra/kotranews/bbs/linkView/jsp/Page.do?dataIdx=233281"; // 실제 KOTRA 패턴
         String url2 = "https://dream.kotra.or.kr/kotra/view.do?dataIdx=789012&pBbsGroup=1";
         
         // when
@@ -39,16 +39,16 @@ class ArticleIdExtractorTest {
         String id2 = ArticleIdExtractor.extractUniqueId(sourceCode, url2);
         
         // then
-        assertEquals("kotra_123456", id1);
+        assertEquals("kotra_233281", id1);
         assertEquals("kotra_789012", id2);
     }
     
     @Test
     void should_extract_investing_id() {
-        // given - 실제 Investing.com URL 패턴에 맞춘 예시
-        String url1 = "https://www.investing.com/news/economy/fed-cuts-rates-12345678";
-        String url2 = "https://www.investing.com/news/stock-market/tesla-earnings-23456789/";
-        String url3 = "https://www.investing.com/news/commodities/oil-prices-rise-34567890?ext=related";
+        // given - 실제 Investing.com URL 패턴
+        String url1 = "https://www.investing.com/news/stock-market-news/israel-strikes-yemeni-capital-sanaa-4207948"; // 실제 패턴
+        String url2 = "https://www.investing.com/analysis/jackson-hole-1982-volcker-moment-200665775"; // Analysis 패턴
+        String url3 = "https://www.investing.com/news/commodities-news/oil-prices-rise-34567890?ext=related";
         
         // when
         String id1 = ArticleIdExtractor.extractUniqueId("investing_news", url1);
@@ -56,8 +56,8 @@ class ArticleIdExtractorTest {
         String id3 = ArticleIdExtractor.extractUniqueId("investing_commodities", url3);
         
         // then
-        assertEquals("investing_12345678", id1);
-        assertEquals("investing_23456789", id2);
+        assertEquals("investing_4207948", id1);
+        assertEquals("investing_200665775", id2);
         assertEquals("investing_34567890", id3);
     }
     
@@ -183,5 +183,51 @@ class ArticleIdExtractorTest {
         assertNotEquals(id1, id2);
         assertEquals("maeil_10111111", id1);
         assertEquals("maeil_10222222", id2);
+    }
+    
+    @Test
+    void should_handle_real_world_investing_patterns() {
+        // given - 실제 수집된 Investing.com URL들
+        String newsUrl = "https://www.investing.com/news/stock-market-news/cocacola-explores-sale-of-costa-coffee-source-says-4207944";
+        String analysisUrl = "https://www.investing.com/analysis/jackson-hole-1982-volcker-moment-that-changed-everything-200665775";
+        String commodityUrl = "https://www.investing.com/news/commodities-news/south-korea-tells-china-it-wants-to-normalise-ties-yonhap-reports-4207942";
+        
+        // when
+        String newsId = ArticleIdExtractor.extractUniqueId("investing_news", newsUrl);
+        String analysisId = ArticleIdExtractor.extractUniqueId("investing_market", analysisUrl);  
+        String commodityId = ArticleIdExtractor.extractUniqueId("investing_commodities", commodityUrl);
+        
+        // then
+        assertEquals("investing_4207944", newsId);
+        assertEquals("investing_200665775", analysisId);
+        assertEquals("investing_4207942", commodityId);
+        
+        System.out.println("✅ 실제 Investing.com 패턴 추출 성공:");
+        System.out.println("  News: " + newsId);
+        System.out.println("  Analysis: " + analysisId);
+        System.out.println("  Commodity: " + commodityId);
+    }
+    
+    @Test 
+    void should_handle_short_or_invalid_ids() {
+        // given - 너무 짧거나 유효하지 않은 ID들
+        String shortId = "https://www.mk.co.kr/news/test/123"; // 8자리 미만
+        String noId = "https://www.investing.com/news/some-article-without-id";
+        String invalidKotra = "https://dream.kotra.or.kr/kotra/view.do?wrongParam=123";
+        
+        // when
+        String shortResult = ArticleIdExtractor.extractUniqueId("maeil_securities", shortId);
+        String noIdResult = ArticleIdExtractor.extractUniqueId("investing_news", noId);
+        String invalidResult = ArticleIdExtractor.extractUniqueId("kotra_overseas", invalidKotra);
+        
+        // then - 모두 해시값으로 폴백되어야 함
+        assertTrue(shortResult.startsWith("hash_"));
+        assertTrue(noIdResult.startsWith("hash_"));
+        assertTrue(invalidResult.startsWith("hash_"));
+        
+        System.out.println("✅ 유효하지 않은 패턴들은 해시로 폴백됨:");
+        System.out.println("  Short ID: " + shortResult);
+        System.out.println("  No ID: " + noIdResult);
+        System.out.println("  Invalid: " + invalidResult);
     }
 }
