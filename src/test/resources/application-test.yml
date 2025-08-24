@@ -1,0 +1,122 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        globally_quoted_identifiers: true
+        format_sql: true
+  
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-h2.sql
+  
+  flyway:
+    enabled: false
+
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: always
+
+# 테스트용 간단한 설정
+app:
+  timezone: Asia/Seoul
+  
+  rss:
+    enableTimeFilter: false
+    defaultMaxAgeHours: 24
+    
+  ranking:
+    maxArticles: 5
+    minImportanceScore: 3.0
+    timeDecayHours: 24
+    
+  batch:
+    autoRun: false
+    
+  digest:
+    sendAt: "07:30"
+    maxArticles: 5
+    minImportanceScore: 3
+    templateName: "default"
+    format: "markdown"
+    
+  openai:
+    apiBase: https://api.openai.com
+    apiKey: test-key
+    modelSmall: gpt-4o-mini
+    modelMain: gpt-4o
+    requestTimeoutSec: 30
+    enableBatch: false
+    batchCutoff: "07:10"
+    maxInputTokens: 5000
+    maxOutputTokens: 900
+    
+  extraction:
+    timeoutSec: 15
+    maxRetries: 2
+    retryDelayMs: 1000
+    userAgent: "Test-Bot/1.0"
+    
+  monitoring:
+    enableHealthCheck: false
+    enableMetrics: false
+    logLevel: INFO
+    
+  discord:
+    webhookUrl: http://test.webhook.url
+    enableNotification: false
+    dryRun: true
+    
+  security:
+    enableCors: false
+    corsOrigins: http://localhost:3000
+    rateLimitPerMinute: 60
+
+# RSS 소스 설정 (테스트용 최소)
+sources:
+  - name: "Test BBC Business"
+    code: "bbc_business"
+    url: "http://feeds.bbci.co.uk/news/business/rss.xml"
+    weight: 1.1
+    enabled: true
+    timeout: 15000
+    retryCount: 3
+    description: "Test BBC Business News RSS Feed"
+
+global:
+  userAgent: "TestBot/1.0"
+  defaultTimeout: 10000
+  defaultRetryCount: 3
+  maxArticlesPerSource: 10
+  minPublishInterval: 3600
+
+filters:
+  includeKeywords:
+    - "economy"
+    - "business"
+    - "finance"
+    - "test"
+  excludeKeywords:
+    - "sports"
+    - "entertainment"
+
+logging:
+  level:
+    com.yourco.econyang: INFO
+    org.springframework.batch: WARN
+    org.hibernate: WARN
+    org.springframework.web: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

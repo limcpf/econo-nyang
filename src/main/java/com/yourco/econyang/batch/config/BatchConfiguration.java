@@ -8,6 +8,7 @@ import com.yourco.econyang.service.ArticleService;
 import com.yourco.econyang.service.ContentExtractionService;
 import com.yourco.econyang.service.DiscordService;
 import com.yourco.econyang.service.DigestTemplateService;
+import com.yourco.econyang.service.ImportanceRankingService;
 import com.yourco.econyang.service.SummaryService;
 import com.yourco.econyang.repository.SummaryRepository;
 import com.yourco.econyang.repository.DailyDigestRepository;
@@ -67,6 +68,9 @@ public class BatchConfiguration {
     
     @Autowired
     private DigestTemplateService digestTemplateService;
+    
+    @Autowired
+    private ImportanceRankingService importanceRankingService;
     
     @Autowired
     private SummaryRepository summaryRepository;
@@ -501,16 +505,17 @@ public class BatchConfiguration {
                         System.out.println("실제 다이제스트 생성 모드 (Summary 기반)");
                         
                         try {
-                            // 최근 생성된 고품질 Summary 조회 (점수 5.0 이상)
+                            // 최근 생성된 모든 Summary 조회 (최소 점수 1.0 이상)
                             LocalDateTime startTime = digestDate.atStartOfDay();
                             LocalDateTime endTime = startTime.plusDays(1);
                             
-                            List<Summary> summaries = summaryRepository.findForDigest(
-                                    BigDecimal.valueOf(5.0), startTime, endTime);
+                            List<Summary> allSummaries = summaryRepository.findForDigest(
+                                    BigDecimal.valueOf(1.0), startTime, endTime);
                             
-                            if (summaries.size() > 10) {
-                                summaries = summaries.subList(0, 10); // 최대 10개로 제한
-                            }
+                            System.out.println("고급 랭킹 알고리즘 적용: " + allSummaries.size() + "개 Summary 대상");
+                            
+                            // 고급 중요도 산정 알고리즘 적용
+                            List<Summary> summaries = importanceRankingService.calculateImportanceRanking(allSummaries);
                             
                             rankedCount = summaries.size();
                             

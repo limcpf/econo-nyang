@@ -206,6 +206,12 @@ app:
     enableTimeFilter: ${RSS_TIME_FILTER:true}
     defaultMaxAgeHours: ${RSS_DEFAULT_MAX_AGE:24}
     
+  # 중요도 랭킹 설정
+  ranking:
+    maxArticles: ${RANKING_MAX_ARTICLES:10}
+    minImportanceScore: ${RANKING_MIN_SCORE:3.0}
+    timeDecayHours: ${RANKING_TIME_DECAY:24}
+    
   # 배치 실행 설정
   batch:
     autoRun: ${BATCH_AUTO_RUN:false}
