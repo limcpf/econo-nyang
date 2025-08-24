@@ -92,6 +92,46 @@ sources:
     timeout: 15000
     retryCount: 2
     description: "The Economist RSS Feed"
+  - name: "Investing.com News"
+    code: "investing_news"
+    url: "https://kr.investing.com/rss/news.rss"
+    weight: 1.0
+    enabled: true
+    timeout: 12000
+    retryCount: 3
+    description: "Investing.com Financial News RSS"
+  - name: "Investing.com Market Overview"
+    code: "investing_market"
+    url: "https://kr.investing.com/rss/market_overview.rss"
+    weight: 1.1
+    enabled: true
+    timeout: 12000
+    retryCount: 3
+    description: "Investing.com Market Overview RSS"
+  - name: "Investing.com Commodities"
+    code: "investing_commodities"
+    url: "https://kr.investing.com/rss/commodities.rss"
+    weight: 0.8
+    enabled: true
+    timeout: 12000
+    retryCount: 3
+    description: "Investing.com Commodities News RSS"
+  - name: "KOTRA 해외시장뉴스"
+    code: "kotra_overseas"
+    url: "https://dream.kotra.or.kr/kotra/rssList.do?pBbsGroup=1"
+    weight: 0.9
+    enabled: true
+    timeout: 15000
+    retryCount: 3
+    description: "KOTRA 해외시장뉴스 RSS"
+  - name: "매일경제 증권"
+    code: "maeil_securities"
+    url: "https://www.mk.co.kr/rss/30800011/"
+    weight: 0.7
+    enabled: true
+    timeout: 12000
+    retryCount: 3
+    description: "매일경제 증권 섹션 RSS"
 
 global:
   userAgent: "EconoNyang/1.0 🐱"
@@ -133,6 +173,19 @@ filters:
     - "banking"
     - "securities"
     - "commodities"
+    - "경제"
+    - "금융"
+    - "투자"
+    - "시장"
+    - "주식"
+    - "증권"
+    - "금리"
+    - "환율"
+    - "무역"
+    - "수출"
+    - "수입"
+    - "기업"
+    - "원자재"
   excludeKeywords:
     - "sports"
     - "entertainment"
