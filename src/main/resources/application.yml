@@ -150,6 +150,12 @@ app:
     enableMetrics: true
     logLevel: INFO
     
+  # Discord 알림 설정
+  discord:
+    webhookUrl: ${DISCORD_WEBHOOK_URL:}
+    enableNotification: ${DISCORD_ENABLE:true}
+    dryRun: ${DRY_RUN:true}
+    
   # 보안 설정
   security:
     enableCors: true

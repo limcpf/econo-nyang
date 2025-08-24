@@ -279,6 +279,7 @@ public class OpenAiClient {
         properties.put("context", contextProp);
         
         schema.put("properties", properties);
+        schema.put("additionalProperties", false);  // OpenAI Structured Outputs 요구사항
         
         ChatCompletionRequest.ResponseFormat.JsonSchema jsonSchema = 
             new ChatCompletionRequest.ResponseFormat.JsonSchema(

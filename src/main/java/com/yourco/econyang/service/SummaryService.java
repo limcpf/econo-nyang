@@ -222,9 +222,12 @@ public class SummaryService {
             summary.setScore(BigDecimal.valueOf(aiResponse.getImportanceScore()));
         }
         
-        // 키워드를 bullets로 저장
+        // 키워드를 bullets로 저장 (빈 리스트라도 설정)
         if (aiResponse.getKeywords() != null && !aiResponse.getKeywords().isEmpty()) {
             summary.setBulletsList(aiResponse.getKeywords());
+        } else {
+            // 키워드가 없으면 기본 키워드 설정
+            summary.setBulletsList(java.util.Arrays.asList("경제뉴스"));
         }
         
         // 경제 섹터와 추가 정보를 glossary로 저장
@@ -294,6 +297,9 @@ public class SummaryService {
         List<String> basicKeywords = extractKeywordsFromTitle(article.getTitle());
         if (!basicKeywords.isEmpty()) {
             summary.setBulletsList(basicKeywords);
+        } else {
+            // 키워드 추출에 실패해도 기본값 설정
+            summary.setBulletsList(java.util.Arrays.asList("경제뉴스"));
         }
         
         System.out.println("폴백 요약 생성: " + article.getUrl() + " - " + errorMessage);
