@@ -6,6 +6,10 @@ import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 import com.yourco.econyang.config.RssSourcesConfig;
 import com.yourco.econyang.dto.ArticleDto;
+import com.yourco.econyang.domain.Article;
+import com.yourco.econyang.strategy.RssTimeFilterStrategy;
+import com.yourco.econyang.strategy.RssTimeFilterStrategyFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -23,6 +27,9 @@ import java.util.stream.Collectors;
 public class RssFeedService {
     
     private final RssSourcesConfig rssSourcesConfig;
+    
+    @Autowired
+    private RssTimeFilterStrategyFactory timeFilterFactory;
     
     public RssFeedService(RssSourcesConfig rssSourcesConfig) {
         this.rssSourcesConfig = rssSourcesConfig;
@@ -136,15 +143,38 @@ public class RssFeedService {
             return articles;
         }
         
+        // 시간 필터링 전략 가져오기
+        RssTimeFilterStrategy timeFilterStrategy = timeFilterFactory.getStrategy(source.getCode());
+        int filteredCount = 0;
+        
         for (SyndEntry entry : feed.getEntries()) {
             try {
-                ArticleDto article = parseEntry(entry, source);
-                if (article != null) {
-                    articles.add(article);
+                ArticleDto articleDto = parseEntry(entry, source);
+                if (articleDto != null) {
+                    // ArticleDto를 임시 Article로 변환해서 시간 필터링 적용
+                    Article tempArticle = new Article(source.getCode(), articleDto.getUrl(), articleDto.getTitle());
+                    tempArticle.setPublishedAt(articleDto.getPublishedAt());
+                    
+                    // 시간 필터링 검사
+                    if (timeFilterStrategy.shouldInclude(tempArticle, source.getCode())) {
+                        articles.add(articleDto);
+                    } else {
+                        filteredCount++;
+                    }
                 }
             } catch (Exception e) {
                 System.err.println("기사 파싱 실패: " + entry.getLink() + " - " + e.getMessage());
             }
+        }
+        
+        if (filteredCount > 0) {
+            System.out.println(String.format(
+                "RSS [%s] 시간 필터링: %d개 기사 제외 (전략: %s, 기준: %d시간)", 
+                source.getCode(), 
+                filteredCount, 
+                timeFilterStrategy.getStrategyName(),
+                timeFilterStrategy.getMaxAgeHours(source.getCode())
+            ));
         }
         
         return articles;
@@ -317,5 +347,14 @@ public class RssFeedService {
         union.addAll(words2);
         
         return union.isEmpty() ? 0.0 : (double) intersection.size() / union.size();
+    }
+    
+    /**
+     * RSS별 시간 필터링 설정 출력 (디버깅용)
+     */
+    public void printTimeFilterSettings() {
+        if (timeFilterFactory != null) {
+            timeFilterFactory.printAllTimeSettings();
+        }
     }
 }

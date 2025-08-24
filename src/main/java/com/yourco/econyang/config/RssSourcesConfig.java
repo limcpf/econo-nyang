@@ -57,6 +57,7 @@ public class RssSourcesConfig {
      */
     public static class RssSource {
         private String name;
+        private String code;
         private String url;
         private boolean enabled = true;
         private String category;
@@ -70,6 +71,14 @@ public class RssSourcesConfig {
 
         public void setName(String name) {
             this.name = name;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(String code) {
+            this.code = code;
         }
 
         public String getUrl() {

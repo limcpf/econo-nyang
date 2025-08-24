@@ -201,6 +201,11 @@ filters:
 app:
   timezone: Asia/Seoul
   
+  # RSS 시간 필터링 설정
+  rss:
+    enableTimeFilter: ${RSS_TIME_FILTER:true}
+    defaultMaxAgeHours: ${RSS_DEFAULT_MAX_AGE:24}
+    
   # 배치 실행 설정
   batch:
     autoRun: ${BATCH_AUTO_RUN:false}
