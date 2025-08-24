@@ -2,55 +2,105 @@
 # 경제 뉴스 RSS 피드 목록과 가중치 설정
 
 sources:
-  # 한국경제신문
-  - name: "한국경제"
-    code: "hankyung"
-    url: "https://www.hankyung.com/feed/economy"
-    weight: 1.0
+  # BBC Business
+  - name: "BBC Business"
+    code: "bbc_business"
+    url: "http://feeds.bbci.co.uk/news/business/rss.xml"
+    weight: 1.1
     enabled: true
-    timeout: 10000
+    timeout: 15000
     retryCount: 3
-    description: "한국경제신문 경제 뉴스"
+    description: "BBC Business News RSS Feed"
     
-  # 매일경제
-  - name: "매일경제"
-    code: "maeil"
-    url: "https://www.mk.co.kr/rss/30000001/"
-    weight: 1.0
-    enabled: true
-    timeout: 10000
-    retryCount: 3
-    description: "매일경제신문 경제 뉴스"
-    
-  # 연합뉴스 경제
-  - name: "연합뉴스"
-    code: "yonhap"
-    url: "https://www.yna.co.kr/rss/economy.xml"
-    weight: 0.9
-    enabled: true
-    timeout: 10000
-    retryCount: 3
-    description: "연합뉴스 경제 뉴스"
-    
-  # 조선비즈
-  - name: "조선비즈"
-    code: "chosunbiz"
-    url: "https://biz.chosun.com/rss/economy.xml"
-    weight: 0.8
-    enabled: true
-    timeout: 10000
-    retryCount: 3
-    description: "조선비즈 경제 뉴스"
-    
-  # Google 뉴스 - 한국 경제
-  - name: "Google 뉴스 경제"
-    code: "google_kr_econ"
-    url: "https://news.google.com/rss/topics/CAAqKggKIiRDQkFTRlFvSUwyMHZNRFp1ZEdvU0JXdHZMUzFCRGlnQVAB?hl=ko&gl=KR&ceid=KR%3Ako"
-    weight: 0.7
+  # Financial Times
+  - name: "Financial Times"
+    code: "ft_companies"
+    url: "https://www.ft.com/companies?format=rss"
+    weight: 1.3
     enabled: true
     timeout: 15000
     retryCount: 2
-    description: "Google 뉴스 한국 경제 토픽"
+    description: "Financial Times Companies RSS Feed"
+    
+  # MarketWatch
+  - name: "MarketWatch"
+    code: "marketwatch"
+    url: "http://feeds.marketwatch.com/marketwatch/topstories/"
+    weight: 0.9
+    enabled: true
+    timeout: 12000
+    retryCount: 3
+    description: "MarketWatch Top Stories RSS Feed"
+    
+  # Bloomberg Economics
+  - name: "Bloomberg Economics"
+    code: "bloomberg_economics"
+    url: "https://feeds.bloomberg.com/economics/news.rss"
+    weight: 1.2
+    enabled: true
+    timeout: 15000
+    retryCount: 3
+    description: "Bloomberg Economics News RSS Feed"
+    
+  # The Economist
+  - name: "The Economist"
+    code: "economist"
+    url: "https://www.economist.com/economics/rss.xml"
+    weight: 1.4
+    enabled: true
+    timeout: 15000
+    retryCount: 2
+    description: "The Economist RSS Feed"
+    
+  # Investing.com News
+  - name: "Investing.com News"
+    code: "investing_news"
+    url: "https://kr.investing.com/rss/news.rss"
+    weight: 1.0
+    enabled: true
+    timeout: 12000
+    retryCount: 3
+    description: "Investing.com Financial News RSS"
+    
+  # Investing.com Market Overview
+  - name: "Investing.com Market Overview"
+    code: "investing_market"
+    url: "https://kr.investing.com/rss/market_overview.rss"
+    weight: 1.1
+    enabled: true
+    timeout: 12000
+    retryCount: 3
+    description: "Investing.com Market Overview RSS"
+    
+  # Investing.com Commodities
+  - name: "Investing.com Commodities"
+    code: "investing_commodities"
+    url: "https://kr.investing.com/rss/commodities.rss"
+    weight: 0.8
+    enabled: true
+    timeout: 12000
+    retryCount: 3
+    description: "Investing.com Commodities News RSS"
+    
+  # KOTRA 해외시장뉴스
+  - name: "KOTRA 해외시장뉴스"
+    code: "kotra_overseas"
+    url: "https://dream.kotra.or.kr/kotra/rssList.do?pBbsGroup=1"
+    weight: 0.9
+    enabled: true
+    timeout: 15000
+    retryCount: 3
+    description: "KOTRA 해외시장뉴스 RSS"
+    
+  # 매일경제 증권
+  - name: "매일경제 증권"
+    code: "maeil_securities"
+    url: "https://www.mk.co.kr/rss/30800011/"
+    weight: 0.7
+    enabled: true
+    timeout: 12000
+    retryCount: 3
+    description: "매일경제 증권 섹션 RSS"
 
 # 전역 설정
 global:
@@ -71,17 +121,49 @@ filters:
     - "맛집"
     - "여행"
   
-  # 포함해야 할 키워드 (경제 관련)
+  # 포함해야 할 키워드 (경제 관련 - 영어 & 한국어)
   includeKeywords:
-    - "경제"
-    - "금리"
-    - "주가"
-    - "환율"
+    - "economy"
+    - "business"
+    - "finance"
+    - "investment"
+    - "market"
+    - "stock"
+    - "trading"
+    - "earnings"
+    - "revenue"
+    - "profit"
     - "GDP"
-    - "인플레이션"
-    - "기업"
-    - "투자"
-    - "부동산"
+    - "inflation"
+    - "interest rate"
+    - "federal reserve"
+    - "central bank"
+    - "merger"
+    - "acquisition"
+    - "IPO"
+    - "corporate"
+    - "financial"
+    - "economic"
+    - "fiscal"
+    - "monetary"
+    - "trade"
+    - "export"
+    - "import"
+    - "currency"
+    - "exchange rate"
+    - "banking"
+    - "securities"
+    - "commodities"
+    - "경제"
     - "금융"
+    - "투자"
+    - "시장"
+    - "주식"
+    - "증권"
+    - "금리"
+    - "환율"
     - "무역"
-    - "산업"
+    - "수출"
+    - "수입"
+    - "기업"
+    - "원자재"

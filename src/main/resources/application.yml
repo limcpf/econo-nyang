@@ -251,7 +251,8 @@ app:
     
   # Discord 알림 설정
   discord:
-    webhookUrl: ${DISCORD_WEBHOOK_URL:}
+    webhook:
+      url: ${DISCORD_WEBHOOK_URL:}
     enableNotification: ${DISCORD_ENABLE:true}
     dryRun: ${DRY_RUN:true}
     
