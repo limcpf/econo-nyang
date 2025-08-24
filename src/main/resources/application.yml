@@ -52,14 +52,6 @@ logging:
 
 # RSS 소스 설정
 sources:
-  - name: "Reuters Business"
-    code: "reuters_business"
-    url: "https://feeds.reuters.com/reuters/businessNews"
-    weight: 1.2
-    enabled: true
-    timeout: 15000
-    retryCount: 3
-    description: "Reuters Business News RSS Feed"
   - name: "BBC Business"
     code: "bbc_business"
     url: "http://feeds.bbci.co.uk/news/business/rss.xml"
@@ -76,14 +68,6 @@ sources:
     timeout: 15000
     retryCount: 2
     description: "Financial Times Companies RSS Feed"
-  - name: "Associated Press Business"
-    code: "ap_business"
-    url: "https://feeds.apnews.com/rss/apf-business.rss"
-    weight: 1.0
-    enabled: true
-    timeout: 15000
-    retryCount: 3
-    description: "Associated Press Business News"
   - name: "MarketWatch"
     code: "marketwatch"
     url: "http://feeds.marketwatch.com/marketwatch/topstories/"
@@ -92,14 +76,22 @@ sources:
     timeout: 12000
     retryCount: 3
     description: "MarketWatch Top Stories RSS Feed"
-  - name: "CNBC World Business"
-    code: "cnbc_world"
-    url: "https://www.cnbc.com/id/100727362/device/rss/rss.html"
-    weight: 1.0
+  - name: "Bloomberg Economics"
+    code: "bloomberg_economics"
+    url: "https://feeds.bloomberg.com/economics/news.rss"
+    weight: 1.2
     enabled: true
     timeout: 15000
     retryCount: 3
-    description: "CNBC World Business News"
+    description: "Bloomberg Economics News RSS Feed"
+  - name: "The Economist"
+    code: "economist"
+    url: "https://www.economist.com/economics/rss.xml"
+    weight: 1.4
+    enabled: true
+    timeout: 15000
+    retryCount: 2
+    description: "The Economist RSS Feed"
 
 global:
   userAgent: "EconoNyang/1.0 🐱"
