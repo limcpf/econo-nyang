@@ -22,6 +22,10 @@ public class ArticleIdExtractor {
             return generateHashId(url);
         }
         
+        if (sourceCode == null || sourceCode.trim().isEmpty()) {
+            return generateHashId(url);
+        }
+        
         switch (sourceCode.toLowerCase()) {
             case "maeil_securities":
                 return extractMaeilEconomyId(url);

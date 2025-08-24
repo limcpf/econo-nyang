@@ -110,6 +110,26 @@ class ArticleIdExtractorTest {
     }
     
     @Test
+    void should_handle_null_and_empty_source_codes() {
+        // given
+        String url = "https://example.com/news/article";
+        
+        // when
+        String nullSourceId = ArticleIdExtractor.extractUniqueId(null, url);
+        String emptySourceId = ArticleIdExtractor.extractUniqueId("", url);
+        String blankSourceId = ArticleIdExtractor.extractUniqueId("   ", url);
+        
+        // then
+        assertTrue(nullSourceId.startsWith("hash_"));    // null sourceCode는 해시로 처리
+        assertTrue(emptySourceId.startsWith("hash_"));   // 빈 sourceCode는 해시로 처리
+        assertTrue(blankSourceId.startsWith("hash_"));   // 공백 sourceCode는 해시로 처리
+        
+        // 모두 동일한 URL이므로 같은 해시값을 가져야 함
+        assertEquals(nullSourceId, emptySourceId);
+        assertEquals(emptySourceId, blankSourceId);
+    }
+    
+    @Test
     void should_generate_consistent_hash_for_same_url() {
         // given
         String sourceCode = "test_source";

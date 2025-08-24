@@ -7,60 +7,63 @@ spring:
 rss:
   sources:
     - name: "BBC Business"
+      code: "bbc_business"
       url: "http://feeds.bbci.co.uk/news/business/rss.xml"
       enabled: true
       category: "국제경제"
       updateIntervalMinutes: 15
       priority: 1
     - name: "Financial Times"
+      code: "ft_companies"
       url: "https://www.ft.com/companies?format=rss"
       enabled: true
       category: "기업/금융"
       updateIntervalMinutes: 15
       priority: 1
     - name: "MarketWatch"
+      code: "marketwatch"
       url: "http://feeds.marketwatch.com/marketwatch/topstories/"
       enabled: true
       category: "시장동향"
       updateIntervalMinutes: 15
       priority: 2
     - name: "Bloomberg Economics"
+      code: "bloomberg_economics"
       url: "https://feeds.bloomberg.com/economics/news.rss"
       enabled: true
       category: "경제분석"
       updateIntervalMinutes: 15
       priority: 1
-    - name: "The Economist"
-      url: "https://www.economist.com/economics/rss.xml"
-      enabled: true
-      category: "경제분석"
-      updateIntervalMinutes: 30
-      priority: 1
     - name: "Investing.com News"
-      url: "https://kr.investing.com/rss/news.rss"
+      code: "investing_news"
+      url: "https://www.investing.com/rss/news.rss"
       enabled: true
       category: "투자정보"
       updateIntervalMinutes: 15
       priority: 2
     - name: "Investing.com Market Overview"
-      url: "https://kr.investing.com/rss/market_overview.rss"
+      code: "investing_market"
+      url: "https://www.investing.com/rss/market_overview.rss"
       enabled: true
       category: "시장동향"
       updateIntervalMinutes: 15
       priority: 2
     - name: "Investing.com Commodities"
-      url: "https://kr.investing.com/rss/commodities.rss"
+      code: "investing_commodities"
+      url: "https://www.investing.com/rss/commodities.rss"
       enabled: true
       category: "원자재"
       updateIntervalMinutes: 30
       priority: 3
     - name: "KOTRA 해외시장뉴스"
+      code: "kotra_overseas"
       url: "https://dream.kotra.or.kr/kotra/rssList.do?pBbsGroup=1"
       enabled: true
       category: "해외시장"
       updateIntervalMinutes: 60
       priority: 2
     - name: "매일경제 증권"
+      code: "maeil_securities"
       url: "https://www.mk.co.kr/rss/30800011/"
       enabled: true
       category: "증권/주식"
