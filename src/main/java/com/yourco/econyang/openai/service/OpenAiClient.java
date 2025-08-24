@@ -207,7 +207,7 @@ public class OpenAiClient {
         schema.put("type", "object");
         schema.put("required", Arrays.asList(
             "summary", "analysis", "importance_score", "economic_sectors", 
-            "keywords", "market_impact", "investor_interest", "confidence_score"
+            "keywords", "market_impact", "investor_interest", "confidence_score", "context"
         ));
         
         Map<String, Object> properties = new HashMap<>();
@@ -327,6 +327,8 @@ public class OpenAiClient {
         fallback.setSummary("AI 요약을 생성할 수 없습니다: " + errorMessage);
         fallback.setAnalysis("자동 분석이 불가능한 상태입니다.");
         fallback.setImportanceScore(5); // 중간값
+        fallback.setEconomicSectors(Arrays.asList("일반")); // 기본 섹터
+        fallback.setKeywords(Arrays.asList("기본", "오류")); // 기본 키워드
         fallback.setMarketImpact("중립");
         fallback.setInvestorInterest("보통");
         fallback.setConfidenceScore(1); // 낮은 신뢰도
