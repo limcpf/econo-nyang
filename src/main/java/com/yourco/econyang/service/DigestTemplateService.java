@@ -239,6 +239,39 @@ public class DigestTemplateService {
     }
     
     /**
+     * 텍스트를 문장 단위로 나누어 읽기 쉬운 리스트로 변환
+     */
+    private List<String> formatTextToList(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        List<String> sentences = new ArrayList<>();
+        
+        // 문장 분리: 온점, 느낌표, 물음표를 기준으로 분리하되 구두점은 보존
+        String[] parts = text.split("(?<=[.!?])\\s+");
+        
+        for (String part : parts) {
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) {
+                // 문장 끝에 구두점이 없으면 온점 추가
+                if (!trimmed.matches(".*[.!?]$")) {
+                    trimmed += ".";
+                }
+                sentences.add(trimmed);
+            }
+        }
+        
+        // 빈 리스트면 원본 텍스트를 그대로 반환
+        if (sentences.isEmpty() && !text.trim().isEmpty()) {
+            sentences.add(text.trim().endsWith(".") || text.trim().endsWith("!") || text.trim().endsWith("?") 
+                    ? text.trim() : text.trim() + ".");
+        }
+        
+        return sentences;
+    }
+    
+    /**
      * 개별 기사 템플릿 변수 맵 생성
      */
     private Map<String, Object> buildArticleVariables(Summary summary, int rank) {
@@ -262,6 +295,12 @@ public class DigestTemplateService {
         // Summary 정보
         vars.put("aiSummary", summary.getSummaryText());
         vars.put("aiAnalysis", summary.getWhyItMatters());
+        
+        // 포맷된 요약과 분석 (문장별로 나누어서)
+        vars.put("aiSummaryFormatted", formatTextToList(summary.getSummaryText()));
+        vars.put("aiAnalysisFormatted", formatTextToList(summary.getWhyItMatters()));
+        vars.put("contextFormatted", summary.getWhyItMatters() != null ? 
+            formatTextToList("관련 배경: " + summary.getWhyItMatters()) : new ArrayList<>());
         
         // 점수 정보
         BigDecimal score = summary.getScore() != null ? summary.getScore() : BigDecimal.ZERO;

@@ -37,15 +37,25 @@ digest:
         
         📍 **출처**: {{source}} | ⏰ **시간**: {{publishedTime}}
         
-        📝 **요약**: {{aiSummary}}
+        ### 📝 **핵심 요약**
+        {{#aiSummaryFormatted}}
+        • {{this}}
+        {{/aiSummaryFormatted}}
         
-        🔍 **AI 분석**: {{aiAnalysis}}
+        ### 🔍 **AI 분석**
+        {{#aiAnalysisFormatted}}
+        ➤ {{this}}
+        {{/aiAnalysisFormatted}}
         
-        📈 **시장 영향**: {{marketImpact}} | 👥 **투자자 관심**: {{investorInterest}}
+        ### 📊 **영향도 평가**
+        • **시장 영향**: {{marketImpact}}
+        • **투자자 관심도**: {{investorInterest}}
+        • **관련 섹터**: {{economicSectors}}
         
-        🏷️ **키워드**: {{keywords}}
+        ### 🏷️ **핵심 키워드**
+        `{{keywords}}`
         
-        📖 [원문 보기]({{url}})
+        📖 [**원문 보기**]({{url}}) | 🎯 **중요도**: {{importanceScore}}/10
         
         ---
         
@@ -133,26 +143,36 @@ digest:
         **📰 출처**: {{source}} | **🕐 발행**: {{publishedTime}}  
         **🎯 중요도**: {{importanceScore}}/10 | **🔍 신뢰도**: {{confidenceScore}}/10
         
-        ### 📝 AI 요약
-        {{aiSummary}}
+        ### 📝 **요약 (한 눈에 파악)**
+        {{#aiSummaryFormatted}}
+        ✓ {{this}}
+        {{/aiSummaryFormatted}}
         
-        ### 🧠 AI 분석  
-        {{aiAnalysis}}
+        ### 🧠 **AI 심층 분석**
+        {{#aiAnalysisFormatted}}
+        🔸 **{{@index|increment}}.** {{this}}
+        {{/aiAnalysisFormatted}}
         
-        ### 📊 영향 분석
-        - **시장 영향**: {{marketImpact}}
-        - **투자자 관심**: {{investorInterest}}
-        - **관련 섹터**: {{economicSectors}}
+        ### 📊 **시장 영향 분석**
+        | 구분 | 평가 | 상세 |
+        |------|------|------|
+        | 시장 영향도 | {{marketImpact}} | 주가/환율/금리에 미치는 영향 |
+        | 투자자 관심 | {{investorInterest}} | 투자 결정에 영향을 주는 정도 |
+        | 관련 섹터 | {{economicSectors}} | 직접적 영향을 받는 산업 분야 |
         
-        ### 🏷️ 핵심 키워드
-        {{keywords}}
+        ### 🏷️ **핵심 키워드 & 태그**
+        {{#keywords}}
+        `#{{this}}` 
+        {{/keywords}}
         
         {{#if context}}
-        ### 💡 추가 컨텍스트
-        {{context}}
+        ### 💡 **추가 배경 정보**
+        {{#contextFormatted}}
+        💭 {{this}}
+        {{/contextFormatted}}
         {{/if}}
         
-        📖 **[원문 링크]({{url}})**
+        📖 **[📄 원문 전체 보기]({{url}})** | 📊 **신뢰도** {{confidenceScore}}/10
         
         ---
         

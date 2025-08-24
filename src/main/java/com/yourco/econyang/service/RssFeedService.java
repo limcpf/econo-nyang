@@ -13,10 +13,14 @@ import com.yourco.econyang.util.ArticleIdExtractor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -31,6 +35,9 @@ public class RssFeedService {
     
     @Autowired
     private RssTimeFilterStrategyFactory timeFilterFactory;
+    
+    private static final String DEBUG_DIR = "debug/rss";
+    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     
     public RssFeedService(RssSourcesConfig rssSourcesConfig) {
         this.rssSourcesConfig = rssSourcesConfig;
@@ -128,7 +135,18 @@ public class RssFeedService {
         connection.setRequestProperty("User-Agent", userAgent);
         connection.setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml");
         
-        try (XmlReader reader = new XmlReader(connection)) {
+        // XML 원본을 바이트 배열로 읽어서 파일 저장과 파싱에 모두 사용
+        byte[] xmlData;
+        try (InputStream inputStream = connection.getInputStream()) {
+            xmlData = inputStream.readAllBytes();
+        }
+        
+        // 원본 RSS XML을 디버그 파일로 저장
+        saveRssXmlToFile(source.getCode(), xmlData);
+        
+        // 바이트 배열에서 XML 파싱
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(xmlData);
+             XmlReader reader = new XmlReader(bais)) {
             SyndFeedInput input = new SyndFeedInput();
             return input.build(reader);
         }
@@ -177,6 +195,9 @@ public class RssFeedService {
                 timeFilterStrategy.getMaxAgeHours(source.getCode())
             ));
         }
+        
+        // 파싱 결과를 디버그 파일로 저장
+        saveParsedResultToFile(source.getCode(), feed, articles, filteredCount);
         
         return articles;
     }
@@ -378,5 +399,78 @@ public class RssFeedService {
         if (timeFilterFactory != null) {
             timeFilterFactory.printAllTimeSettings();
         }
+    }
+    
+    /**
+     * 원본 RSS XML을 디버그 파일로 저장
+     */
+    private void saveRssXmlToFile(String sourceCode, byte[] xmlData) {
+        try {
+            Path debugDir = Paths.get(DEBUG_DIR);
+            if (!Files.exists(debugDir)) {
+                Files.createDirectories(debugDir);
+            }
+            
+            String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+            String fileName = String.format("rss_%s_%s.xml", sourceCode, timestamp);
+            Path filePath = debugDir.resolve(fileName);
+            
+            Files.write(filePath, xmlData);
+            System.out.println("RSS XML 저장 완료: " + filePath);
+            
+        } catch (IOException e) {
+            System.err.println("RSS XML 저장 실패: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * RSS 파싱 결과를 디버그 파일로 저장
+     */
+    private void saveParsedResultToFile(String sourceCode, SyndFeed feed, List<ArticleDto> articles, int filteredCount) {
+        try {
+            Path debugDir = Paths.get(DEBUG_DIR);
+            if (!Files.exists(debugDir)) {
+                Files.createDirectories(debugDir);
+            }
+            
+            String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+            String fileName = String.format("parsed_%s_%s.txt", sourceCode, timestamp);
+            Path filePath = debugDir.resolve(fileName);
+            
+            StringBuilder sb = new StringBuilder();
+            sb.append("=== RSS 피드 파싱 결과 ===\n");
+            sb.append("소스 코드: ").append(sourceCode).append("\n");
+            sb.append("피드 제목: ").append(feed.getTitle()).append("\n");
+            sb.append("피드 설명: ").append(feed.getDescription()).append("\n");
+            sb.append("파싱 시간: ").append(LocalDateTime.now()).append("\n");
+            sb.append("전체 엔트리 수: ").append(feed.getEntries().size()).append("\n");
+            sb.append("필터링 통과: ").append(articles.size()).append("개\n");
+            sb.append("필터링 제외: ").append(filteredCount).append("개\n");
+            sb.append("\n=== 파싱된 기사 목록 ===\n");
+            
+            for (int i = 0; i < articles.size(); i++) {
+                ArticleDto article = articles.get(i);
+                sb.append(String.format("\n[%d] %s\n", i + 1, article.getTitle()));
+                sb.append("URL: ").append(article.getUrl()).append("\n");
+                sb.append("발행시간: ").append(article.getPublishedAt()).append("\n");
+                sb.append("요약: ").append(truncate(article.getDescription(), 200)).append("\n");
+                sb.append("---\n");
+            }
+            
+            Files.write(filePath, sb.toString().getBytes());
+            System.out.println("RSS 파싱 결과 저장 완료: " + filePath);
+            
+        } catch (IOException e) {
+            System.err.println("RSS 파싱 결과 저장 실패: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 문자열을 지정된 길이로 자르기
+     */
+    private String truncate(String str, int maxLength) {
+        if (str == null) return "";
+        if (str.length() <= maxLength) return str;
+        return str.substring(0, maxLength) + "...";
     }
 }

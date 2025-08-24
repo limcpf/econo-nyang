@@ -5,6 +5,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -19,6 +20,9 @@ import java.util.concurrent.TimeUnit;
  */
 @Service
 public class ContentExtractionService {
+    
+    @Autowired
+    private ContentQualityFilterService qualityFilterService;
     
     private static final int DEFAULT_TIMEOUT = 10000; // 10초
     private static final int MAX_RETRIES = 2;
@@ -81,11 +85,24 @@ public class ContentExtractionService {
                 String content = fetchAndExtractContent(article.getUrl(), article.getSource());
                 
                 if (content != null && !content.trim().isEmpty()) {
-                    article.setContent(content);
-                    article.setExtractedAt(LocalDateTime.now());
-                    article.setExtractSuccess(true);
-                    article.setExtractError(null);
-                    return article;
+                    // 본문 품질 검사 수행
+                    ContentQualityFilterService.ContentQualityResult qualityResult = 
+                        qualityFilterService.checkContentQuality(article.getTitle(), content);
+                    
+                    if (qualityResult.isQualified()) {
+                        article.setContent(content);
+                        article.setExtractedAt(LocalDateTime.now());
+                        article.setExtractSuccess(true);
+                        article.setExtractError(null);
+                        System.out.println("품질 검사 통과: " + article.getTitle() + " - " + qualityResult.getReason());
+                        return article;
+                    } else {
+                        article.setExtractSuccess(false);
+                        article.setExtractError("품질 검사 실패: " + qualityResult.getReason());
+                        article.setExtractedAt(LocalDateTime.now());
+                        System.out.println("품질 검사 실패: " + article.getTitle() + " - " + qualityResult.getReason());
+                        return article;
+                    }
                 }
                 
             } catch (Exception e) {
@@ -131,10 +148,15 @@ public class ContentExtractionService {
         
         // 결과 통계
         long successCount = results.stream().mapToLong(article -> article.isExtractSuccess() ? 1 : 0).sum();
+        long qualityFailCount = results.stream()
+            .mapToLong(article -> article.getExtractError() != null && 
+                                article.getExtractError().contains("품질 검사 실패") ? 1 : 0)
+            .sum();
         double successRate = (double) successCount / results.size() * 100;
         
         System.out.println("병렬 본문 추출 완료: " + successCount + "/" + results.size() + 
                          " 성공 (" + String.format("%.1f", successRate) + "%), " + 
+                         qualityFailCount + "개 품질 검사 실패, " +
                          String.format("%.2f", processingTime) + "초 소요");
         
         return results;
