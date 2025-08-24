@@ -231,10 +231,9 @@ public class RssFeedService {
                     .toLocalDateTime();
             article.setPublishedAt(publishedAt);
         } else {
-            // 발행일이 없는 경우 현재 시간으로 설정 (수집 시점)
-            LocalDateTime now = LocalDateTime.now();
-            article.setPublishedAt(now);
-            System.out.println("기사 발행일 누락, 현재 시간으로 설정: " + url + " -> " + now);
+            // 발행일이 없는 경우 null로 두고 로그만 기록
+            article.setPublishedAt(null);
+            System.out.println("기사 발행일 누락 (null로 설정): " + url);
         }
         
         return article;

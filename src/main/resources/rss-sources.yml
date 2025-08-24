@@ -56,7 +56,7 @@ sources:
   - name: "Investing.com News"
     code: "investing_news"
     url: "https://kr.investing.com/rss/news.rss"
-    weight: 1.0
+    weight: 1.5
     enabled: true
     timeout: 12000
     retryCount: 3
@@ -66,7 +66,7 @@ sources:
   - name: "Investing.com Market Overview"
     code: "investing_market"
     url: "https://kr.investing.com/rss/market_overview.rss"
-    weight: 1.1
+    weight: 1.6
     enabled: true
     timeout: 12000
     retryCount: 3
@@ -96,7 +96,7 @@ sources:
   - name: "매일경제 증권"
     code: "maeil_securities"
     url: "https://www.mk.co.kr/rss/30800011/"
-    weight: 0.7
+    weight: 0.5
     enabled: true
     timeout: 12000
     retryCount: 3

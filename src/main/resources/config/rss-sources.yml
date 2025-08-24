@@ -329,7 +329,7 @@ rss:
     defaultTimeZone: "Asia/Seoul"
     
     # 최대 기사 나이 (시간)
-    maxArticleAgeHours: 72
+    maxArticleAgeHours: 96
     
     # 날짜 파싱 형식들
     dateFormats:

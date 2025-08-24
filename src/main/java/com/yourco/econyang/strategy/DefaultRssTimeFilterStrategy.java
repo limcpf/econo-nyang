@@ -31,8 +31,9 @@ public class DefaultRssTimeFilterStrategy implements RssTimeFilterStrategy {
         }
         
         if (article.getPublishedAt() == null) {
-            System.out.println("기사 발행일이 없음, 포함: " + article.getUrl());
-            return true; // 발행일이 없으면 일단 포함
+            // 발행일이 없는 기사는 제외하거나 별도 처리
+            System.out.println("기사 발행일이 없음, 제외: " + article.getUrl());
+            return false; // 발행일이 없으면 제외
         }
         
         LocalDateTime cutoff = getCutoffDateTime(rssSourceCode);

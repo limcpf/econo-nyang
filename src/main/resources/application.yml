@@ -196,7 +196,9 @@ app:
   # RSS 시간 필터링 설정
   rss:
     enableTimeFilter: ${RSS_TIME_FILTER:true}
-    defaultMaxAgeHours: ${RSS_DEFAULT_MAX_AGE:24}
+    defaultMaxAgeHours: ${RSS_DEFAULT_MAX_AGE:72}
+    maeilMaxAgeHours: ${RSS_MAEIL_MAX_AGE:48}
+    noDateMaxArticles: ${RSS_NO_DATE_MAX_ARTICLES:5}
     
   # 중요도 랭킹 설정
   ranking:
@@ -261,7 +263,9 @@ spring:
       on-profile: dev
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/econyang
+    url: jdbc:postgresql://localhost:5432/econo
+    username: dslim
+    password: dslimpw
   
   jpa:
     show-sql: true
