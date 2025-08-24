@@ -281,6 +281,7 @@ public class OpenAiClient {
         schema.put("properties", properties);
         schema.put("additionalProperties", false);  // OpenAI Structured Outputs 요구사항
         
+        
         ChatCompletionRequest.ResponseFormat.JsonSchema jsonSchema = 
             new ChatCompletionRequest.ResponseFormat.JsonSchema(
                 "economic_summary",
@@ -292,6 +293,7 @@ public class OpenAiClient {
     }
     
     private ChatCompletionResponse callChatCompletions(ChatCompletionRequest request) {
+        
         return webClient
                 .post()
                 .uri(apiBase + CHAT_COMPLETIONS_URL)
