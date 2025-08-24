@@ -206,8 +206,8 @@ public class OpenAiClient {
         Map<String, Object> schema = new HashMap<>();
         schema.put("type", "object");
         schema.put("required", Arrays.asList(
-            "summary", "analysis", "importance_score", "market_impact", 
-            "investor_interest", "confidence_score"
+            "summary", "analysis", "importance_score", "economic_sectors", 
+            "keywords", "market_impact", "investor_interest", "confidence_score"
         ));
         
         Map<String, Object> properties = new HashMap<>();
