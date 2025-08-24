@@ -84,17 +84,9 @@ sources:
     timeout: 15000
     retryCount: 3
     description: "Bloomberg Economics News RSS Feed"
-  - name: "The Economist"
-    code: "economist"
-    url: "https://www.economist.com/economics/rss.xml"
-    weight: 1.4
-    enabled: true
-    timeout: 15000
-    retryCount: 2
-    description: "The Economist RSS Feed"
   - name: "Investing.com News"
     code: "investing_news"
-    url: "https://kr.investing.com/rss/news.rss"
+    url: "https://www.investing.com/rss/news.rss"
     weight: 1.0
     enabled: true
     timeout: 12000
@@ -102,7 +94,7 @@ sources:
     description: "Investing.com Financial News RSS"
   - name: "Investing.com Market Overview"
     code: "investing_market"
-    url: "https://kr.investing.com/rss/market_overview.rss"
+    url: "https://www.investing.com/rss/market_overview.rss"
     weight: 1.1
     enabled: true
     timeout: 12000
@@ -110,7 +102,7 @@ sources:
     description: "Investing.com Market Overview RSS"
   - name: "Investing.com Commodities"
     code: "investing_commodities"
-    url: "https://kr.investing.com/rss/commodities.rss"
+    url: "https://www.investing.com/rss/commodities.rss"
     weight: 0.8
     enabled: true
     timeout: 12000

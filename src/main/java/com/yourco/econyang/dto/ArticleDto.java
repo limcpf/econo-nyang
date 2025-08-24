@@ -10,6 +10,7 @@ public class ArticleDto {
     
     private String source;        // RSS 소스 코드 (예: hankyung, maeil)
     private String url;           // 기사 URL (유니크 키)
+    private String uniqueId;      // RSS별 고유 식별자 (중복 처리용)
     private String title;         // 기사 제목
     private String description;   // 기사 요약/설명
     private String author;        // 기사 작성자
@@ -67,6 +68,14 @@ public class ArticleDto {
     
     public void setUrl(String url) {
         this.url = url;
+    }
+    
+    public String getUniqueId() {
+        return uniqueId;
+    }
+    
+    public void setUniqueId(String uniqueId) {
+        this.uniqueId = uniqueId;
     }
     
     public String getTitle() {

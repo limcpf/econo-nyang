@@ -9,6 +9,7 @@ import com.yourco.econyang.dto.ArticleDto;
 import com.yourco.econyang.domain.Article;
 import com.yourco.econyang.strategy.RssTimeFilterStrategy;
 import com.yourco.econyang.strategy.RssTimeFilterStrategyFactory;
+import com.yourco.econyang.util.ArticleIdExtractor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -208,6 +209,10 @@ public class RssFeedService {
         article.setTitle(title.trim());
         article.setSourceWeight(1.0); // 기본 가중치
         
+        // RSS별 고유 식별자 생성
+        String uniqueId = ArticleIdExtractor.extractUniqueId(source.getCode(), url);
+        article.setUniqueId(uniqueId);
+        
         // 설명/요약
         if (entry.getDescription() != null && entry.getDescription().getValue() != null) {
             article.setDescription(entry.getDescription().getValue().trim());
@@ -225,6 +230,11 @@ public class RssFeedService {
                     .atZone(ZoneId.systemDefault())
                     .toLocalDateTime();
             article.setPublishedAt(publishedAt);
+        } else {
+            // 발행일이 없는 경우 현재 시간으로 설정 (수집 시점)
+            LocalDateTime now = LocalDateTime.now();
+            article.setPublishedAt(now);
+            System.out.println("기사 발행일 누락, 현재 시간으로 설정: " + url + " -> " + now);
         }
         
         return article;
@@ -297,25 +307,38 @@ public class RssFeedService {
         }
         
         List<ArticleDto> result = new ArrayList<>();
+        Set<String> seenUniqueIds = new HashSet<>();
         Set<String> seenUrls = new HashSet<>();
         
         for (ArticleDto article : articles) {
             boolean isDuplicate = false;
             
-            // URL 기반 중복 제거
-            if (dedupConfig.isEnableUrlDedup()) {
+            // 고유 ID 기반 중복 제거 (우선순위 1)
+            if (article.getUniqueId() != null) {
+                if (seenUniqueIds.contains(article.getUniqueId())) {
+                    isDuplicate = true;
+                    System.out.println("중복 제거 (고유ID): " + article.getUniqueId() + " -> " + article.getTitle());
+                } else {
+                    seenUniqueIds.add(article.getUniqueId());
+                }
+            }
+            
+            // URL 기반 중복 제거 (우선순위 2)
+            if (!isDuplicate && dedupConfig.isEnableUrlDedup()) {
                 if (seenUrls.contains(article.getUrl())) {
                     isDuplicate = true;
+                    System.out.println("중복 제거 (URL): " + article.getUrl());
                 } else {
                     seenUrls.add(article.getUrl());
                 }
             }
             
-            // 제목 유사도 기반 중복 제거
+            // 제목 유사도 기반 중복 제거 (우선순위 3)
             if (!isDuplicate && dedupConfig.isEnableTitleDedup()) {
                 for (ArticleDto existing : result) {
                     if (calculateTitleSimilarity(article.getTitle(), existing.getTitle()) >= dedupConfig.getTitleSimilarityThreshold()) {
                         isDuplicate = true;
+                        System.out.println("중복 제거 (제목 유사도): " + article.getTitle());
                         break;
                     }
                 }
