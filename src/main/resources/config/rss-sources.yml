@@ -8,7 +8,7 @@ rss:
   sources:
     - name: "BBC Business"
       code: "bbc_business"
-      url: "http://feeds.bbci.co.uk/news/business/rss.xml"
+      url: "https://feeds.bbci.co.uk/news/business/rss.xml"
       enabled: true
       category: "국제경제"
       updateIntervalMinutes: 15
@@ -22,7 +22,7 @@ rss:
       priority: 1
     - name: "MarketWatch"
       code: "marketwatch"
-      url: "http://feeds.marketwatch.com/marketwatch/topstories/"
+      url: "https://feeds.content.dowjones.io/public/rss/mw_topstories"
       enabled: true
       category: "시장동향"
       updateIntervalMinutes: 15

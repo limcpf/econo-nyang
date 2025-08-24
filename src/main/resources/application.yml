@@ -54,7 +54,7 @@ logging:
 sources:
   - name: "BBC Business"
     code: "bbc_business"
-    url: "http://feeds.bbci.co.uk/news/business/rss.xml"
+    url: "https://feeds.bbci.co.uk/news/business/rss.xml"
     weight: 1.1
     enabled: true
     timeout: 15000
@@ -70,7 +70,7 @@ sources:
     description: "Financial Times Companies RSS Feed"
   - name: "MarketWatch"
     code: "marketwatch"
-    url: "http://feeds.marketwatch.com/marketwatch/topstories/"
+    url: "https://feeds.content.dowjones.io/public/rss/mw_topstories"
     weight: 0.9
     enabled: true
     timeout: 12000
