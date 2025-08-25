@@ -333,11 +333,18 @@ public class DigestTemplateService {
     }
     
     /**
-     * 템플릿 변수 치환
+     * 템플릿 변수 치환 (Handlebars 스타일 지원)
      */
     private String replaceVariables(String template, Map<String, Object> variables) {
         String result = template;
         
+        // 1. 먼저 반복문 처리 ({{#variableName}}...{{/variableName}})
+        result = processLoopTemplates(result, variables);
+        
+        // 2. 조건문 처리 ({{#if condition}}...{{/if}})
+        result = processConditionalTemplates(result, variables);
+        
+        // 3. 일반 변수 치환 ({{variableName}})
         for (Map.Entry<String, Object> entry : variables.entrySet()) {
             String placeholder = "{{" + entry.getKey() + "}}";
             String value = entry.getValue() != null ? entry.getValue().toString() : "";
@@ -345,6 +352,92 @@ public class DigestTemplateService {
         }
         
         return result;
+    }
+    
+    /**
+     * 반복문 템플릿 처리 ({{#listVariable}}...{{/listVariable}})
+     */
+    private String processLoopTemplates(String template, Map<String, Object> variables) {
+        String result = template;
+        
+        for (Map.Entry<String, Object> entry : variables.entrySet()) {
+            String varName = entry.getKey();
+            Object varValue = entry.getValue();
+            
+            // List 타입인 경우만 처리
+            if (varValue instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<String> list = (List<String>) varValue;
+                
+                String startTag = "{{#" + varName + "}}";
+                String endTag = "{{/" + varName + "}}";
+                
+                int startIndex = result.indexOf(startTag);
+                if (startIndex != -1) {
+                    int endIndex = result.indexOf(endTag, startIndex);
+                    if (endIndex != -1) {
+                        String beforeLoop = result.substring(0, startIndex);
+                        String loopTemplate = result.substring(startIndex + startTag.length(), endIndex);
+                        String afterLoop = result.substring(endIndex + endTag.length());
+                        
+                        StringBuilder loopResult = new StringBuilder();
+                        for (String item : list) {
+                            String itemContent = loopTemplate.replace("{{this}}", item);
+                            loopResult.append(itemContent);
+                        }
+                        
+                        result = beforeLoop + loopResult.toString() + afterLoop;
+                    }
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 조건문 템플릿 처리 ({{#if variable}}...{{/if}})
+     */
+    private String processConditionalTemplates(String template, Map<String, Object> variables) {
+        String result = template;
+        
+        for (Map.Entry<String, Object> entry : variables.entrySet()) {
+            String varName = entry.getKey();
+            Object varValue = entry.getValue();
+            
+            String startTag = "{{#if " + varName + "}}";
+            String endTag = "{{/if}}";
+            
+            int startIndex = result.indexOf(startTag);
+            if (startIndex != -1) {
+                int endIndex = result.indexOf(endTag, startIndex);
+                if (endIndex != -1) {
+                    String beforeCondition = result.substring(0, startIndex);
+                    String conditionTemplate = result.substring(startIndex + startTag.length(), endIndex);
+                    String afterCondition = result.substring(endIndex + endTag.length());
+                    
+                    // 조건 평가
+                    boolean condition = evaluateCondition(varValue);
+                    String conditionResult = condition ? conditionTemplate : "";
+                    
+                    result = beforeCondition + conditionResult + afterCondition;
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 조건 평가
+     */
+    private boolean evaluateCondition(Object value) {
+        if (value == null) return false;
+        if (value instanceof Boolean) return (Boolean) value;
+        if (value instanceof Number) return ((Number) value).doubleValue() > 0;
+        if (value instanceof String) return !((String) value).isEmpty();
+        if (value instanceof List) return !((List<?>) value).isEmpty();
+        return true;
     }
     
     /**
