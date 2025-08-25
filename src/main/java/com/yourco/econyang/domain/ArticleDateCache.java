@@ -10,9 +10,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "article_date_cache", 
        indexes = {
-           @Index(name = "idx_url_hash", columnList = "urlHash"),
-           @Index(name = "idx_source_created", columnList = "sourceName,createdAt"),
-           @Index(name = "idx_extraction_method", columnList = "extractionMethod")
+           @Index(name = "idx_url_hash", columnList = "url_hash"),
+           @Index(name = "idx_source_created", columnList = "source_name,created_at"),
+           @Index(name = "idx_extraction_method", columnList = "extraction_method")
        })
 public class ArticleDateCache {
     
