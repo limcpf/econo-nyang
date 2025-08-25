@@ -55,6 +55,13 @@ digest:
         ### 🏷️ **핵심 키워드**
         `{{keywords}}`
         
+        {{#if glossary}}
+        ### 📚 **경제 용어 해설**
+        {{#glossary}}
+        • **{{term}}**: {{definition}}
+        {{/glossary}}
+        {{/if}}
+        
         📖 [**원문 보기**]({{url}}) | 🎯 **중요도**: {{importanceScore}}/10
         
         ---
@@ -170,6 +177,15 @@ digest:
         {{#contextFormatted}}
         💭 {{this}}
         {{/contextFormatted}}
+        {{/if}}
+        
+        {{#if glossary}}
+        ### 📖 **경제 용어 사전**
+        {{#glossary}}
+        **🔸 {{term}}**  
+        {{definition}}
+        
+        {{/glossary}}
         {{/if}}
         
         📖 **[📄 원문 전체 보기]({{url}})** | 📊 **신뢰도** {{confidenceScore}}/10

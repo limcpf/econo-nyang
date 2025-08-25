@@ -41,8 +41,48 @@ public class EconomicSummaryResponse {
     // 추가 컨텍스트나 배경 정보
     private String context;
     
+    // 경제 용어 해설
+    private List<GlossaryItem> glossary;
+    
     // 기본 생성자
     public EconomicSummaryResponse() {}
+    
+    // 경제 용어 해설 아이템 클래스
+    public static class GlossaryItem {
+        private String term;
+        private String definition;
+        
+        public GlossaryItem() {}
+        
+        public GlossaryItem(String term, String definition) {
+            this.term = term;
+            this.definition = definition;
+        }
+        
+        public String getTerm() {
+            return term;
+        }
+        
+        public void setTerm(String term) {
+            this.term = term;
+        }
+        
+        public String getDefinition() {
+            return definition;
+        }
+        
+        public void setDefinition(String definition) {
+            this.definition = definition;
+        }
+        
+        @Override
+        public String toString() {
+            return "GlossaryItem{" +
+                    "term='" + term + '\'' +
+                    ", definition='" + definition + '\'' +
+                    '}';
+        }
+    }
     
     // Getters and Setters
     public String getSummary() {
@@ -115,6 +155,14 @@ public class EconomicSummaryResponse {
     
     public void setContext(String context) {
         this.context = context;
+    }
+    
+    public List<GlossaryItem> getGlossary() {
+        return glossary;
+    }
+    
+    public void setGlossary(List<GlossaryItem> glossary) {
+        this.glossary = glossary;
     }
     
     // 편의 메서드들 (JSON 직렬화에서 제외)

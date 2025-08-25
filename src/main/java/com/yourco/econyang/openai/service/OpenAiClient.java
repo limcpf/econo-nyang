@@ -56,7 +56,7 @@ public class OpenAiClient {
     @Value("${app.openai.maxInputTokens:5000}")
     private int maxInputTokens;
     
-    @Value("${app.openai.maxOutputTokens:900}")
+    @Value("${app.openai.maxOutputTokens:1500}")
     private int maxOutputTokens;
     
     @Autowired
@@ -156,8 +156,12 @@ public class OpenAiClient {
     
     private String buildSystemPrompt() {
         return "당신은 한국의 경제 뉴스 분석 전문가입니다. " +
-               "주어진 경제 뉴스를 분석하여 구조화된 요약과 해석을 제공합니다. " +
-               "요약은 정확하고 객관적이어야 하며, 경제적 맥락과 시장 영향을 포함해야 합니다. " +
+               "한국 일반 독자들이 쉽게 이해할 수 있도록 다음 원칙을 지켜주세요:\n" +
+               "1. 복잡한 경제 용어는 쉬운 말로 풀어서 설명하고, glossary에 용어 해설 포함\n" +
+               "2. 한국 상황과 연결하여 설명 (한국 경제, 주식시장, 개인투자자 관점)\n" +
+               "3. 구체적이고 상세한 요약 (7-10문장으로 충분히 설명)\n" +
+               "4. 한국어 문체로 자연스럽고 이해하기 쉽게 작성\n" +
+               "5. 단순한 번역이 아닌 한국인이 이해하기 쉬운 해설 제공\n" +
                "모든 응답은 제공된 JSON 스키마 형식을 정확히 따라야 합니다.";
     }
     
@@ -174,7 +178,12 @@ public class OpenAiClient {
             "다음 경제 뉴스를 분석해주세요:\n\n" +
             "제목: %s\n\n" +
             "본문:\n%s\n\n" +
-            "위 기사를 바탕으로 구조화된 요약과 경제 분석을 제공해주세요.",
+            "위 기사를 바탕으로 다음 요구사항에 맞춰 구조화된 요약과 분석을 제공해주세요:\n\n" +
+            "1. 요약(summary): 7-10문장으로 충분히 상세하게 작성\n" +
+            "2. 분석(analysis): 한국 상황과 연결하여 구체적으로 설명\n" +
+            "3. 경제 용어 해설(glossary): 기사에 나온 어려운 경제 용어들을 쉽게 풀어서 설명\n" +
+            "4. 문체: 한국 일반인이 읽기 쉬운 자연스러운 한국어로 작성\n" +
+            "5. 각 문장은 명확하고 이해하기 쉽게 구성",
             title, limitedContent
         );
     }
@@ -207,7 +216,7 @@ public class OpenAiClient {
         schema.put("type", "object");
         schema.put("required", Arrays.asList(
             "summary", "analysis", "importance_score", "economic_sectors", 
-            "keywords", "market_impact", "investor_interest", "confidence_score", "context"
+            "keywords", "market_impact", "investor_interest", "confidence_score", "context", "glossary"
         ));
         
         Map<String, Object> properties = new HashMap<>();
@@ -278,6 +287,30 @@ public class OpenAiClient {
         contextProp.put("description", "추가적인 배경 정보나 컨텍스트");
         properties.put("context", contextProp);
         
+        // glossary
+        Map<String, Object> glossaryProp = new HashMap<>();
+        glossaryProp.put("type", "array");
+        Map<String, Object> glossaryItems = new HashMap<>();
+        glossaryItems.put("type", "object");
+        Map<String, Object> glossaryItemProps = new HashMap<>();
+        
+        Map<String, Object> termProp = new HashMap<>();
+        termProp.put("type", "string");
+        termProp.put("description", "경제 용어");
+        glossaryItemProps.put("term", termProp);
+        
+        Map<String, Object> definitionProp = new HashMap<>();
+        definitionProp.put("type", "string");
+        definitionProp.put("description", "용어의 쉬운 설명");
+        glossaryItemProps.put("definition", definitionProp);
+        
+        glossaryItems.put("properties", glossaryItemProps);
+        glossaryItems.put("required", Arrays.asList("term", "definition"));
+        glossaryItems.put("additionalProperties", false);
+        glossaryProp.put("items", glossaryItems);
+        glossaryProp.put("description", "기사에 등장한 경제 용어와 설명");
+        properties.put("glossary", glossaryProp);
+        
         schema.put("properties", properties);
         schema.put("additionalProperties", false);  // OpenAI Structured Outputs 요구사항
         
@@ -335,6 +368,7 @@ public class OpenAiClient {
         fallback.setInvestorInterest("보통");
         fallback.setConfidenceScore(1); // 낮은 신뢰도
         fallback.setContext("오류로 인한 기본 응답: " + errorMessage);
+        fallback.setGlossary(Arrays.asList()); // 빈 용어 해설
         return fallback;
     }
     
