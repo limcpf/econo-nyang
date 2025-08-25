@@ -36,6 +36,9 @@ public class RssFeedService {
     @Autowired
     private RssTimeFilterStrategyFactory timeFilterFactory;
     
+    @Autowired
+    private SmartDateFilterService smartDateFilterService;
+    
     private static final String DEBUG_DIR = "debug/rss";
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     
@@ -100,8 +103,35 @@ public class RssFeedService {
         // 중복 제거 (config 기반)
         List<ArticleDto> result = removeDuplicates(allArticles, rssSourcesConfig.getCollection().getDeduplication());
         
+        System.out.println("중복 제거 후 총 " + result.size() + "개 기사");
+        
+        // 발행일자가 있는 기사와 없는 기사로 분리
+        List<ArticleDto> articlesWithDate = new ArrayList<>();
+        List<ArticleDto> articlesWithoutDate = new ArrayList<>();
+        
+        for (ArticleDto article : result) {
+            if (article.getPublishedAt() != null) {
+                articlesWithDate.add(article);
+            } else {
+                articlesWithoutDate.add(article);
+            }
+        }
+        
+        System.out.println("발행일자 있는 기사: " + articlesWithDate.size() + "개");
+        System.out.println("발행일자 없는 기사: " + articlesWithoutDate.size() + "개");
+        
+        // 발행일자가 없는 기사들에 대해 스마트 전략으로 24시간 이내 기사 필터링
+        if (!articlesWithoutDate.isEmpty()) {
+            LocalDateTime cutoffTime = LocalDateTime.now().minusHours(24);
+            List<ArticleDto> validArticlesFromSmartFilter = smartDateFilterService
+                    .filterArticlesWithSmartStrategies(articlesWithoutDate, cutoffTime);
+            
+            System.out.println("스마트 필터링으로 유효 확인된 기사: " + validArticlesFromSmartFilter.size() + "개");
+            articlesWithDate.addAll(validArticlesFromSmartFilter);
+        }
+        
         // 발행 시간 기준 내림차순 정렬 (최신순)
-        result.sort((a, b) -> {
+        articlesWithDate.sort((a, b) -> {
             if (a.getPublishedAt() == null && b.getPublishedAt() == null) return 0;
             if (a.getPublishedAt() == null) return 1;
             if (b.getPublishedAt() == null) return -1;
@@ -109,12 +139,12 @@ public class RssFeedService {
         });
         
         // 최대 기사 수 제한
-        if (result.size() > maxArticles) {
-            result = result.subList(0, maxArticles);
+        if (articlesWithDate.size() > maxArticles) {
+            articlesWithDate = articlesWithDate.subList(0, maxArticles);
         }
         
-        System.out.println("중복 제거 후 총 " + result.size() + "개 기사 수집 완료");
-        return result;
+        System.out.println("최종 수집 완료: " + articlesWithDate.size() + "개 기사");
+        return articlesWithDate;
     }
     
     /**
