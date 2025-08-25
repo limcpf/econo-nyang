@@ -312,9 +312,15 @@ public class DigestTemplateService {
         vars.put("importance", rank); // 순위
         
         // AI 분석 더미 데이터 (향후 Article 엔티티에 필드 추가 예정)
-        vars.put("marketImpact", scoreInt >= 7 ? "높음" : scoreInt >= 5 ? "보통" : "낮음");
+        String marketImpact = scoreInt >= 7 ? "높음" : scoreInt >= 5 ? "보통" : "낮음";
+        vars.put("marketImpact", marketImpact);
         vars.put("investorInterest", scoreInt >= 8 ? "매우 높음" : scoreInt >= 6 ? "높음" : scoreInt >= 4 ? "보통" : "낮음");
         vars.put("economicSectors", "금융, 증권"); // 더미
+        
+        // 친근한 템플릿을 위한 추가 변수들
+        vars.put("marketImpact_high", "높음".equals(marketImpact));
+        vars.put("marketImpact_medium", "보통".equals(marketImpact));
+        vars.put("marketImpact_low", "낮음".equals(marketImpact));
         
         // 키워드 생성 (bullets 배열 활용)
         List<String> bulletsList = summary.getBulletsList();
