@@ -32,7 +32,7 @@ public class DigestTemplateService {
      * 기본 템플릿을 사용하여 다이제스트 생성
      */
     public String generateDigest(List<Summary> summaries) {
-        return generateDigest(summaries, "default", "markdown");
+        return generateDigest(summaries, "friendly", "markdown");
     }
     
     /**
@@ -45,6 +45,9 @@ public class DigestTemplateService {
         
         // 템플릿 설정 조회
         DigestTemplateConfig.Template template = templateConfig.getTemplates().get(templateName);
+        if (template == null) {
+            template = templateConfig.getTemplates().get("friendly");
+        }
         if (template == null) {
             template = templateConfig.getTemplates().get("default");
         }
@@ -100,6 +103,9 @@ public class DigestTemplateService {
      */
     private String generateEmptyDigest(String templateName) {
         DigestTemplateConfig.Template template = templateConfig.getTemplates().get(templateName);
+        if (template == null) {
+            template = templateConfig.getTemplates().get("friendly");
+        }
         if (template == null) {
             template = templateConfig.getTemplates().get("default");
         }

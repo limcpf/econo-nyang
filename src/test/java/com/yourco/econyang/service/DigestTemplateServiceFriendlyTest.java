@@ -115,6 +115,21 @@ public class DigestTemplateServiceFriendlyTest {
     }
 
     @Test
+    void should_use_friendly_template_as_default() {
+        // Given
+        List<Summary> summaries = createTestSummaries();
+        setupMockTemplateConfig();
+        
+        // When - 기본 generateDigest 호출 (템플릿 지정 없음)
+        String result = digestTemplateService.generateDigest(summaries);
+        
+        // Then - friendly 템플릿의 특징적인 요소들이 포함되어야 함
+        assertTrue(result.contains("👋 안녕하세요!"));
+        assertTrue(result.contains("🤔"));
+        assertTrue(result.contains("쉽게 정리해드려요"));
+    }
+
+    @Test
     void should_include_friendly_section_headers() {
         // Given
         List<Summary> summaries = createTestSummaries();

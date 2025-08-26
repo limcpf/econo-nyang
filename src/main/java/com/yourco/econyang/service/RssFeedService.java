@@ -18,6 +18,7 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -35,6 +36,9 @@ public class RssFeedService {
     
     @Autowired
     private RssTimeFilterStrategyFactory timeFilterFactory;
+    
+    @Autowired
+    private EconomicNewsClassifier economicNewsClassifier;
     
     @Autowired
     private SmartDateFilterService smartDateFilterService;
@@ -209,6 +213,12 @@ public class RssFeedService {
                         articles.add(articleDto);
                     } else {
                         filteredCount++;
+                        System.out.println(String.format("⏰ 시간 필터링 제외: [%s] %s - 발행일: %s (기준: %d시간 이내)", 
+                            source.getCode(), 
+                            truncate(articleDto.getTitle(), 50),
+                            articleDto.getPublishedAt() != null ? articleDto.getPublishedAt().toString() : "없음",
+                            timeFilterStrategy.getMaxAgeHours(source.getCode())
+                        ));
                     }
                 }
             } catch (Exception e) {
@@ -228,6 +238,9 @@ public class RssFeedService {
         
         // 파싱 결과를 디버그 파일로 저장
         saveParsedResultToFile(source.getCode(), feed, articles, filteredCount);
+        
+        // 필터링 로그를 별도 파일로 저장
+        saveFilteringLogToFile(source.getCode(), feed.getEntries().size(), articles.size(), filteredCount);
         
         return articles;
     }
@@ -298,11 +311,52 @@ public class RssFeedService {
             return articles;
         }
         
-        return articles.stream()
-                .filter(article -> passesTitleLengthFilter(article, filters))
-                .filter(article -> passesIncludeFilter(article, filters.getIncludeKeywords()))
-                .filter(article -> passesExcludeFilter(article, filters.getExcludeKeywords()))
-                .collect(Collectors.toList());
+        List<ArticleDto> result = new ArrayList<>();
+        int titleLengthFiltered = 0, includeKeywordFiltered = 0, excludeKeywordFiltered = 0, economicQualityFiltered = 0;
+        
+        for (ArticleDto article : articles) {
+            boolean passed = true;
+            String reason = null;
+            
+            // 1. 제목 길이 필터
+            if (!passesTitleLengthFilter(article, filters)) {
+                passed = false;
+                reason = String.format("제목 길이 부적합 (%d자, 범위: %d-%d자)", 
+                    article.getTitle() != null ? article.getTitle().length() : 0,
+                    filters.getMinTitleLength(), filters.getMaxTitleLength());
+                titleLengthFiltered++;
+            }
+            // 2. 고급 경제 뉴스 분류 필터 (새로 추가)
+            else if (!economicNewsClassifier.shouldIncludeNews(article, 2)) { // 최소 점수 2점
+                passed = false;
+                reason = "경제 관련성 부족 (고급 분류)";
+                economicQualityFiltered++;
+            }
+            // 3. 기존 포함 키워드 필터 (보조적 역할)
+            else if (!passesIncludeFilter(article, filters.getIncludeKeywords())) {
+                passed = false;
+                reason = "포함 키워드 불일치: " + filters.getIncludeKeywords();
+                includeKeywordFiltered++;
+            }
+            // 4. 기존 제외 키워드 필터 (보조적 역할)  
+            else if (!passesExcludeFilter(article, filters.getExcludeKeywords())) {
+                passed = false;
+                reason = "제외 키워드 포함: " + filters.getExcludeKeywords();
+                excludeKeywordFiltered++;
+            }
+            
+            if (passed) {
+                result.add(article);
+            }
+            // 로깅은 EconomicNewsClassifier에서 이미 처리됨
+        }
+        
+        if (titleLengthFiltered > 0 || includeKeywordFiltered > 0 || excludeKeywordFiltered > 0 || economicQualityFiltered > 0) {
+            System.out.println(String.format("📊 콘텐츠 필터링 결과: 제목길이 %d개, 경제품질 %d개, 포함키워드 %d개, 제외키워드 %d개 제외", 
+                titleLengthFiltered, economicQualityFiltered, includeKeywordFiltered, excludeKeywordFiltered));
+        }
+        
+        return result;
     }
     
     /**
@@ -492,6 +546,39 @@ public class RssFeedService {
             
         } catch (IOException e) {
             System.err.println("RSS 파싱 결과 저장 실패: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 필터링 로그를 파일로 저장
+     */
+    private void saveFilteringLogToFile(String sourceCode, int totalEntries, int validArticles, int filteredCount) {
+        try {
+            Path debugDir = Paths.get(DEBUG_DIR);
+            if (!Files.exists(debugDir)) {
+                Files.createDirectories(debugDir);
+            }
+            
+            String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+            String fileName = String.format("filter_log_%s_%s.log", sourceCode, timestamp);
+            Path filePath = debugDir.resolve(fileName);
+            
+            StringBuilder sb = new StringBuilder();
+            sb.append("=== 필터링 로그 ===\n");
+            sb.append("소스: ").append(sourceCode).append("\n");
+            sb.append("처리 시간: ").append(LocalDateTime.now()).append("\n");
+            sb.append("총 RSS 엔트리: ").append(totalEntries).append("개\n");
+            sb.append("필터링 통과: ").append(validArticles).append("개\n");
+            sb.append("필터링 제외: ").append(filteredCount).append("개\n");
+            sb.append("통과율: ").append(String.format("%.1f%%", (validArticles * 100.0) / totalEntries)).append("\n");
+            sb.append("제외율: ").append(String.format("%.1f%%", (filteredCount * 100.0) / totalEntries)).append("\n");
+            sb.append("===================\n");
+            
+            Files.write(filePath, sb.toString().getBytes());
+            System.out.println("📄 필터링 로그 저장 완료: " + filePath);
+            
+        } catch (IOException e) {
+            System.err.println("필터링 로그 저장 실패: " + e.getMessage());
         }
     }
     
