@@ -97,13 +97,12 @@ digest:
       
       # 친근한 헤더 템플릿
       header: |
-        # 👋 안녕하세요! **{{date}}** 경제뉴스를 쉽게 정리해드려요
+        # 📈 {{date}} 경제뉴스 다이제스트
         
-        🤔 **"경제뉴스가 어려워서 읽기 힘들다고요?"** 
-        걱정마세요! AI가 오늘의 주요 경제 소식 **{{totalArticles}}개**를 쏙쏙 골라서, 누구나 이해할 수 있게 정리해드렸어요.
+        안녕하세요! 오늘의 주요 경제 소식 **{{totalArticles}}개**를 간단명료하게 정리해드렸습니다.
         
-        🎯 **이렇게 선별했어요**: 중요도 {{minImportance}}점 이상인 뉴스만 엄선!
-        📊 **읽는 시간**: 약 3-5분이면 오늘의 경제 흐름을 다 파악할 수 있어요!
+        - 중요도 {{minImportance}}점 이상만 엄선
+        - 예상 읽기 시간: 3-5분
         
         ---
         
@@ -120,53 +119,41 @@ digest:
       
       # 친근한 기사 항목 템플릿
       articleItem: |
-        ## {{importance}}번째 🌟 **{{title}}**
+        ## {{importance}}. **{{title}}**
         
-        > 💭 **한 줄 요약**: {{#aiSummaryFormatted}}{{this}}{{/aiSummaryFormatted}}
+        **출처**: {{source}} | **시간**: {{publishedTime}}
         
-        📰 **어디서 나온 소식?** {{source}} | 🕐 **언제?** {{publishedTime}}
-        
-        ### 🔍 **무슨 일인가요?**
+        ### 📋 무슨 일인가요?
         {{#aiSummaryFormatted}}
-        💡 {{this}}
+        - {{this}}
         {{/aiSummaryFormatted}}
         
-        ### 🤷‍♀️ **왜 중요한가요?**
+        ### 💡 왜 중요한가요?
         {{#aiAnalysisFormatted}}
-        🎯 {{this}}
+        - {{this}}
         {{/aiAnalysisFormatted}}
         
-        ### 📊 **나에게 어떤 영향이 있을까요?**
-        {{#if marketImpact}}
-        📈 **투자에 미치는 영향**: {{marketImpact}} 
+        ### 📊 영향도 분석
+        - **시장 영향**: {{marketImpact}}
+        - **투자자 관심도**: {{investorInterest}}
+        - **관련 분야**: {{economicSectors}}
         {{#if marketImpact_high}}
-        💰 투자하시는 분들은 특히 주목해보세요!
+        - 투자 포트폴리오에 중요한 변화 예상
         {{/if}}
-        {{#if marketImpact_medium}}  
-        📊 투자 포트폴리오를 점검해보는 것도 좋겠어요.
-        {{/if}}
-        {{#if marketImpact_low}}
-        😌 당장 크게 걱정하실 필요는 없어 보여요.
-        {{/if}}
+        {{#if marketImpact_medium}}
+        - 투자 전략 재검토 필요
         {{/if}}
         
-        🎯 **관심도**: {{investorInterest}}
-        🏭 **관련 분야**: {{economicSectors}}
-        
-        ### 🏷️ **핵심 키워드** 
-        `{{keywords}}` 
-        *→ 이 키워드들로 추가 정보를 찾아보세요!*
+        **핵심 키워드**: {{keywords}}
         
         {{#if glossary}}
-        ### 🤓 **어려운 용어 쉽게 설명**
+        ### 📚 경제 용어 해설
         {{#glossary}}
-        **Q. {{term}}이 뭔가요?**  
-        A. {{definition}} 
-        
+        - **{{term}}**: {{definition}}
         {{/glossary}}
         {{/if}}
         
-        🔗 [**전체 기사 읽어보기**]({{url}}) | 🎯 **중요도**: {{importanceScore}}/10
+        [원문 보기]({{url}}) | **중요도**: {{importanceScore}}/10
         
         ---
         
@@ -175,34 +162,25 @@ digest:
         
         ---
         
-        # 🎉 오늘의 경제뉴스 정리 끝!
+        ## 📊 요약 통계
         
-        ## 📊 **오늘은 이런 뉴스들이 있었어요**
-        📰 **총 수집된 뉴스**: {{totalCollected}}개
-        ✨ **AI가 분석한 뉴스**: {{totalAnalyzed}}개  
-        ⭐ **평균 중요도**: {{avgImportance}}/10점
+        - 총 수집된 뉴스: {{totalCollected}}개
+        - AI 분석 완료: {{totalAnalyzed}}개  
+        - 평균 중요도: {{avgImportance}}/10점
+        - AI 정확도: {{avgConfidence}}/10
         
-        ## 📈 **오늘의 경제 분위기는?**
-        😊 **좋은 소식**: {{positiveNews}}개 - 긍정적인 경제 신호들이에요!
-        😟 **주의할 소식**: {{negativeNews}}개 - 조금 신경 써야 할 이슈들
-        😐 **중립적 소식**: {{neutralNews}}개 - 그냥 알아두면 좋은 정보들
-        
-        🤖 **AI 분석 정확도**: {{avgConfidence}}/10 
-        *→ AI가 이 정도로 확신한다는 뜻이에요!*
+        **분위기 분석**
+        - 긍정적 소식: {{positiveNews}}개
+        - 주의할 소식: {{negativeNews}}개  
+        - 중립적 소식: {{neutralNews}}개
         
         ---
         
-        ## 💬 **마지막으로 한 말씀**
+        **투자 참고사항**: 이 다이제스트는 정보 제공 목적입니다. 실제 투자 결정은 충분한 검토 후 하시기 바랍니다.
         
-        💡 **투자 TIP**: 이 다이제스트는 정보 전달이 목적이에요. 실제 투자할 때는 여러 정보를 꼼꼼히 비교해보시고, 필요하면 전문가와 상담해주세요!
+        **다음 다이제스트**: {{nextDigestTime}} | [더 많은 정보](https://github.com/yourco/econdigest)
         
-        🕐 **다음 다이제스트**: {{nextDigestTime}}에 또 만나요!
-        
-        📱 **더 많은 경제 정보**: [경제뉴스 다이제스트 홈](https://github.com/yourco/econdigest)
-        
-        🤗 **피드백 환영**: 더 쉽고 유용한 다이제스트를 만들기 위해 여러분의 의견을 기다려요!
-        
-        🤖 Made with 💕 by EconDigest AI
+        🤖 EconDigest AI
         
     # 간단한 다이게스트 템플릿
     simple:
