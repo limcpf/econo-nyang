@@ -3,6 +3,7 @@ package com.yourco.econyang.service;
 import com.yourco.econyang.dto.ArticleDto;
 import com.yourco.econyang.strategy.SmartDateFilterStrategy;
 import com.yourco.econyang.strategy.SmartDateFilterStrategy.DateEstimationResult;
+import com.yourco.econyang.strategy.UniversalSmartStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +29,12 @@ public class SmartDateFilterService {
     
     @Autowired
     private ArticleDateCacheService cacheService;
+    
+    @Autowired
+    private UniversalSmartStrategy universalSmartStrategy;
+    
+    @Autowired
+    private com.yourco.econyang.util.PerformanceMonitor performanceMonitor;
     
     private final ExecutorService executorService = Executors.newFixedThreadPool(3);
     private final Map<String, SmartDateFilterStrategy> strategyCache = new ConcurrentHashMap<>();
@@ -80,14 +87,16 @@ public class SmartDateFilterService {
         
         SmartDateFilterStrategy strategy = getStrategyForSource(sourceName);
         if (strategy == null) {
-            System.out.println(sourceName + ": 적용 가능한 스마트 전략 없음, 기본 처리");
-            return processWithBasicStrategy(articles, cutoffTime);
+            // 전용 전략이 없으면 UniversalSmartStrategy 사용
+            strategy = universalSmartStrategy;
+            System.out.println(sourceName + ": 전용 전략 없음, 범용 스마트 전략 적용");
         }
         
         System.out.println(sourceName + ": " + strategy.getStrategyName() + " 전략 적용");
         
+        final SmartDateFilterStrategy finalStrategy = strategy;
         List<ArticleDto> validArticles = articles.stream()
-                .filter(article -> isArticleValid(article, strategy, articles.indexOf(article), articles.size(), cutoffTime))
+                .filter(article -> isArticleValid(article, finalStrategy, articles.indexOf(article), articles.size(), cutoffTime))
                 .collect(Collectors.toList());
         
         System.out.println(sourceName + ": " + validArticles.size() + "개 유효 기사 확인");
@@ -137,15 +146,17 @@ public class SmartDateFilterService {
         SmartDateFilterStrategy cached = strategyCache.get(sourceName);
         if (cached != null) return cached;
         
-        // 적합한 전략 찾기
+        // 적합한 전략 찾기 (UniversalSmartStrategy 제외)
         String sourceCode = getSourceCodeFromName(sourceName);
         for (SmartDateFilterStrategy strategy : smartStrategies) {
-            if (strategy.supports(sourceCode)) {
+            // UniversalSmartStrategy는 마지막 폴백으로 사용하므로 여기서 제외
+            if (!(strategy instanceof UniversalSmartStrategy) && strategy.supports(sourceCode)) {
                 strategyCache.put(sourceName, strategy);
                 return strategy;
             }
         }
         
+        // 전용 전략이 없으면 null 반환 (UniversalSmartStrategy가 폴백으로 사용됨)
         return null;
     }
     
@@ -166,29 +177,6 @@ public class SmartDateFilterService {
         return sourceName.toLowerCase().replaceAll("[\\s-]", "_");
     }
     
-    /**
-     * 기본 전략으로 처리 (스마트 전략이 없는 경우)
-     */
-    private List<ArticleDto> processWithBasicStrategy(List<ArticleDto> articles, LocalDateTime cutoffTime) {
-        // 상위 N개는 최신으로 간주하는 기본 전략
-        int assumedRecentCount = Math.min(5, articles.size() / 2);
-        
-        List<ArticleDto> validArticles = articles.stream()
-                .limit(assumedRecentCount)
-                .peek(article -> {
-                    // 기본 날짜 설정 (현재 시간 기준 랜덤하게)
-                    LocalDateTime estimatedDate = LocalDateTime.now().minusHours(
-                            (articles.indexOf(article) + 1) * 2);
-                    article.setPublishedAt(estimatedDate);
-                    
-                    System.out.println(String.format("[기본] %s - 추정일: %s (RSS 순서: %d/%d)", 
-                            truncateTitle(article.getTitle()), estimatedDate, 
-                            articles.indexOf(article) + 1, articles.size()));
-                })
-                .collect(Collectors.toList());
-        
-        return validArticles;
-    }
     
     /**
      * 캐시 및 전략 성능 통계 출력
@@ -206,6 +194,9 @@ public class SmartDateFilterService {
         
         // 전략 캐시 크기
         System.out.println("전략 캐시 크기: " + strategyCache.size());
+        
+        // 성능 모니터 통계
+        performanceMonitor.printPerformanceStats();
     }
     
     /**
@@ -230,19 +221,21 @@ public class SmartDateFilterService {
      * 개발/디버깅용 언론사별 상세 통계
      */
     public void printDetailedStats() {
-        String[] sources = {"Financial Times", "Bloomberg Economics", "MarketWatch", "매일경제"};
+        String[] sources = {"Financial Times", "Bloomberg Economics", "MarketWatch", "매일경제", "Investing.com", "KOTRA", "BBC Business"};
         
         System.out.println("=== 언론사별 상세 통계 ===");
         for (String source : sources) {
             SmartDateFilterStrategy strategy = getStrategyForSource(source);
-            if (strategy != null) {
-                System.out.println(String.format("\n[%s] - %s", source, strategy.getStrategyName()));
-                System.out.println("  발행 시간대: " + strategy.getTypicalPublishingHours(getSourceCodeFromName(source)));
-                System.out.println("  일평균 기사수: " + strategy.getAverageArticlesPerDay(getSourceCodeFromName(source)));
-                System.out.println("  최신 기사 개수: " + strategy.getAssumedRecentArticleCount(getSourceCodeFromName(source)));
-                
-                cacheService.printExtractionStats(source);
+            if (strategy == null) {
+                strategy = universalSmartStrategy; // 폴백
             }
+            
+            System.out.println(String.format("\n[%s] - %s", source, strategy.getStrategyName()));
+            System.out.println("  발행 시간대: " + strategy.getTypicalPublishingHours(getSourceCodeFromName(source)));
+            System.out.println("  일평균 기사수: " + strategy.getAverageArticlesPerDay(getSourceCodeFromName(source)));
+            System.out.println("  최신 기사 개수: " + strategy.getAssumedRecentArticleCount(getSourceCodeFromName(source)));
+            
+            cacheService.printExtractionStats(source);
         }
     }
     
