@@ -341,7 +341,43 @@ public class DigestTemplateService {
             vars.put("context", "특별히 주목할 만한 중요 뉴스입니다.");
         }
         
+        // Glossary 처리 - 기사 내용에서 경제 용어 추출 (간단한 예시)
+        List<Map<String, String>> glossaryList = extractGlossaryFromContent(summary);
+        vars.put("glossary", glossaryList);
+        
         return vars;
+    }
+    
+    /**
+     * 기사 내용에서 경제 용어 사전 추출
+     */
+    private List<Map<String, String>> extractGlossaryFromContent(Summary summary) {
+        List<Map<String, String>> glossary = new ArrayList<>();
+        
+        String content = (summary.getSummaryText() + " " + summary.getWhyItMatters() + " " + summary.getArticle().getTitle()).toLowerCase();
+        
+        // 기본적인 경제 용어 사전 (실제로는 더 포괄적인 DB나 API 사용)
+        Map<String, String> economicTerms = new HashMap<>();
+        economicTerms.put("양적완화", "중앙은행이 시중에 돈의 양을 늘려 경기를 부양하는 정책입니다.");
+        economicTerms.put("기준금리", "중앙은행이 시중은행에 돈을 빌려줄 때 적용하는 기본 금리입니다.");
+        economicTerms.put("cpi", "소비자물가지수로, 일반 소비자가 구입하는 상품과 서비스의 가격 변동을 나타냅니다.");
+        economicTerms.put("gdp", "국내총생산으로, 한 나라에서 1년 동안 생산된 모든 상품과 서비스의 총 가치입니다.");
+        economicTerms.put("인플레이션", "물가가 지속적으로 상승하는 현상입니다.");
+        economicTerms.put("디플레이션", "물가가 지속적으로 하락하는 현상입니다.");
+        economicTerms.put("코스피", "한국종합주가지수로, 우리나라 대표 주식시장의 주가 동향을 나타냅니다.");
+        economicTerms.put("ipo", "기업이 처음으로 주식을 공개해서 거래소에 상장하는 것입니다.");
+        
+        // 내용에서 용어 찾기
+        for (Map.Entry<String, String> term : economicTerms.entrySet()) {
+            if (content.contains(term.getKey().toLowerCase())) {
+                Map<String, String> glossaryItem = new HashMap<>();
+                glossaryItem.put("term", term.getKey());
+                glossaryItem.put("definition", term.getValue());
+                glossary.add(glossaryItem);
+            }
+        }
+        
+        return glossary;
     }
     
     /**
@@ -372,35 +408,60 @@ public class DigestTemplateService {
     private String processLoopTemplates(String template, Map<String, Object> variables) {
         String result = template;
         
-        for (Map.Entry<String, Object> entry : variables.entrySet()) {
-            String varName = entry.getKey();
-            Object varValue = entry.getValue();
+        // 여러 개의 반복문을 처리하기 위해 while 루프 사용
+        while (true) {
+            boolean processed = false;
             
-            // List 타입인 경우만 처리
-            if (varValue instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<String> list = (List<String>) varValue;
+            for (Map.Entry<String, Object> entry : variables.entrySet()) {
+                String varName = entry.getKey();
+                Object varValue = entry.getValue();
                 
-                String startTag = "{{#" + varName + "}}";
-                String endTag = "{{/" + varName + "}}";
-                
-                int startIndex = result.indexOf(startTag);
-                if (startIndex != -1) {
-                    int endIndex = result.indexOf(endTag, startIndex);
-                    if (endIndex != -1) {
-                        String beforeLoop = result.substring(0, startIndex);
-                        String loopTemplate = result.substring(startIndex + startTag.length(), endIndex);
-                        String afterLoop = result.substring(endIndex + endTag.length());
-                        
-                        StringBuilder loopResult = new StringBuilder();
-                        for (String item : list) {
-                            String itemContent = loopTemplate.replace("{{this}}", item);
-                            loopResult.append(itemContent);
+                // List 타입인 경우만 처리
+                if (varValue instanceof List) {
+                    List<?> list = (List<?>) varValue;
+                    
+                    String startTag = "{{#" + varName + "}}";
+                    String endTag = "{{/" + varName + "}}";
+                    
+                    int startIndex = result.indexOf(startTag);
+                    if (startIndex != -1) {
+                        int endIndex = result.indexOf(endTag, startIndex);
+                        if (endIndex != -1) {
+                            String beforeLoop = result.substring(0, startIndex);
+                            String loopTemplate = result.substring(startIndex + startTag.length(), endIndex);
+                            String afterLoop = result.substring(endIndex + endTag.length());
+                            
+                            StringBuilder loopResult = new StringBuilder();
+                            for (Object item : list) {
+                                String itemContent = loopTemplate;
+                                
+                                if (item instanceof String) {
+                                    // 문자열 리스트의 경우
+                                    itemContent = itemContent.replace("{{this}}", (String) item);
+                                } else if (item instanceof Map) {
+                                    // Map 리스트의 경우 (예: glossary)
+                                    @SuppressWarnings("unchecked")
+                                    Map<String, String> itemMap = (Map<String, String>) item;
+                                    for (Map.Entry<String, String> mapEntry : itemMap.entrySet()) {
+                                        String placeholder = "{{" + mapEntry.getKey() + "}}";
+                                        itemContent = itemContent.replace(placeholder, mapEntry.getValue());
+                                    }
+                                }
+                                
+                                loopResult.append(itemContent);
+                            }
+                            
+                            result = beforeLoop + loopResult.toString() + afterLoop;
+                            processed = true;
+                            break; // 한 번에 하나씩 처리
                         }
-                        
-                        result = beforeLoop + loopResult.toString() + afterLoop;
                     }
                 }
+            }
+            
+            // 더 이상 처리할 반복문이 없으면 종료
+            if (!processed) {
+                break;
             }
         }
         
@@ -413,28 +474,31 @@ public class DigestTemplateService {
     private String processConditionalTemplates(String template, Map<String, Object> variables) {
         String result = template;
         
-        for (Map.Entry<String, Object> entry : variables.entrySet()) {
-            String varName = entry.getKey();
-            Object varValue = entry.getValue();
+        // 모든 가능한 {{#if ...}} 패턴을 찾아서 처리
+        while (true) {
+            int startIndex = result.indexOf("{{#if ");
+            if (startIndex == -1) break;
             
-            String startTag = "{{#if " + varName + "}}";
+            int tagEndIndex = result.indexOf("}}", startIndex);
+            if (tagEndIndex == -1) break;
+            
+            String fullStartTag = result.substring(startIndex, tagEndIndex + 2);
+            String varName = fullStartTag.substring(6, fullStartTag.length() - 2).trim(); // "{{#if " 제거하고 "}}" 제거
+            
             String endTag = "{{/if}}";
+            int endIndex = result.indexOf(endTag, tagEndIndex);
+            if (endIndex == -1) break;
             
-            int startIndex = result.indexOf(startTag);
-            if (startIndex != -1) {
-                int endIndex = result.indexOf(endTag, startIndex);
-                if (endIndex != -1) {
-                    String beforeCondition = result.substring(0, startIndex);
-                    String conditionTemplate = result.substring(startIndex + startTag.length(), endIndex);
-                    String afterCondition = result.substring(endIndex + endTag.length());
-                    
-                    // 조건 평가
-                    boolean condition = evaluateCondition(varValue);
-                    String conditionResult = condition ? conditionTemplate : "";
-                    
-                    result = beforeCondition + conditionResult + afterCondition;
-                }
-            }
+            String beforeCondition = result.substring(0, startIndex);
+            String conditionTemplate = result.substring(tagEndIndex + 2, endIndex);
+            String afterCondition = result.substring(endIndex + endTag.length());
+            
+            // 조건 평가
+            Object varValue = variables.get(varName);
+            boolean condition = evaluateCondition(varValue);
+            String conditionResult = condition ? conditionTemplate : "";
+            
+            result = beforeCondition + conditionResult + afterCondition;
         }
         
         return result;
