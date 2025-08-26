@@ -493,7 +493,7 @@ public class BatchConfiguration {
                             .getJobParameters()
                             .get("templateName") != null ? 
                             chunkContext.getStepContext().getJobParameters().get("templateName").toString() : 
-                            "default";
+                            "friendly";
                     
                     LocalDate digestDate = LocalDate.now();
                     int rankedCount = 0;
