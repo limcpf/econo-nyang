@@ -537,15 +537,15 @@ public class BatchConfiguration {
                             System.err.println("실제 다이제스트 생성 실패, 더미 모드로 폴백: " + e.getMessage());
                             e.printStackTrace();
                             rankedCount = processDummyDigest(digestDate, templateName);
-                            digestTitle = "경제뉴스 다이제스트 - " + digestDate + " (더미)";
-                            digestBody = generateDummyDigestBody(rankedCount);
+                            digestTitle = digestTemplateService.getTemplateTitle(templateName);
+                            digestBody = digestTemplateService.generateDigest(new ArrayList<>(), templateName, "markdown");
                         }
                     } else {
                         // 더미 다이제스트 생성
                         System.out.println("더미 다이제스트 생성 모드");
                         rankedCount = processDummyDigest(digestDate, templateName);
-                        digestTitle = "경제뉴스 다이제스트 - " + digestDate + " (더미)";
-                        digestBody = generateDummyDigestBody(rankedCount);
+                        digestTitle = digestTemplateService.getTemplateTitle(templateName);
+                        digestBody = digestTemplateService.generateDigest(new ArrayList<>(), templateName, "markdown");
                     }
                     
                     // DailyDigest DB 저장
