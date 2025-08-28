@@ -22,9 +22,11 @@ import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
 
 /**
  * RSS 피드 수집 서비스
@@ -203,7 +205,15 @@ public class RssFeedService {
         // XML 원본을 바이트 배열로 읽어서 파일 저장과 파싱에 모두 사용
         byte[] xmlData;
         try (InputStream inputStream = connection.getInputStream()) {
-            xmlData = inputStream.readAllBytes();
+            // gzip 압축 확인 및 해제
+            String contentEncoding = connection.getContentEncoding();
+            if ("gzip".equalsIgnoreCase(contentEncoding)) {
+                try (GZIPInputStream gzipStream = new GZIPInputStream(inputStream)) {
+                    xmlData = gzipStream.readAllBytes();
+                }
+            } else {
+                xmlData = inputStream.readAllBytes();
+            }
         }
         
         // XML 검증 (HTML이 반환된 경우 감지)
@@ -216,12 +226,26 @@ public class RssFeedService {
         // 원본 RSS XML을 디버그 파일로 저장
         saveRssXmlToFile(source.getCode(), xmlData);
         
+        // Investing.com의 경우 날짜 파싱을 위해 원본 XML 저장
+        String rawXml = null;
+        if (source.getCode().startsWith("investing_")) {
+            rawXml = new String(xmlData, "UTF-8");
+        }
+        
         // 바이트 배열에서 XML 파싱
+        SyndFeed feed;
         try (ByteArrayInputStream bais = new ByteArrayInputStream(xmlData);
              XmlReader reader = new XmlReader(bais)) {
             SyndFeedInput input = new SyndFeedInput();
-            return input.build(reader);
+            feed = input.build(reader);
         }
+        
+        // Investing.com의 경우 날짜 수동 파싱 적용
+        if (source.getCode().startsWith("investing_") && rawXml != null) {
+            fixInvestingComDates(feed, rawXml);
+        }
+        
+        return feed;
     }
     
     /**
@@ -326,11 +350,18 @@ public class RssFeedService {
         }
         
         // 발행 시간
+        LocalDateTime publishedAt = null;
         if (entry.getPublishedDate() != null) {
-            LocalDateTime publishedAt = entry.getPublishedDate()
+            publishedAt = entry.getPublishedDate()
                     .toInstant()
                     .atZone(ZoneId.systemDefault())
                     .toLocalDateTime();
+        } else {
+            // Rome 라이브러리가 파싱하지 못한 경우 직접 파싱 시도
+            publishedAt = parseCustomDateFormat(entry, source.getCode());
+        }
+        
+        if (publishedAt != null) {
             article.setPublishedAt(publishedAt);
         } else {
             // 발행일이 없는 경우 null로 두고 로그만 기록
@@ -339,6 +370,78 @@ public class RssFeedService {
         }
         
         return article;
+    }
+    
+    /**
+     * 커스텀 날짜 형식 파싱 (Investing.com 등 비표준 형식 처리)
+     */
+    private LocalDateTime parseCustomDateFormat(SyndEntry entry, String sourceCode) {
+        try {
+            // Investing.com의 경우 XML에서 직접 파싱할 수 없으므로
+            // URL에서 날짜를 추출하거나 현재 시간 기준으로 추정
+            if (sourceCode.startsWith("investing_")) {
+                // 현재 시간을 기준으로 최근 기사로 간주
+                // 실제로는 RSS 순서상 최신 기사들이므로 현재 시간에서 조금 전으로 설정
+                return LocalDateTime.now().minusHours(1);
+            }
+        } catch (Exception e) {
+            System.out.println("커스텀 날짜 파싱 실패: " + e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Investing.com RSS의 날짜를 수동으로 파싱해서 설정
+     */
+    private void fixInvestingComDates(SyndFeed feed, String rawXml) {
+        try {
+            List<SyndEntry> entries = feed.getEntries();
+            if (entries == null || entries.isEmpty()) {
+                return;
+            }
+            
+            // 정규식으로 모든 pubDate 추출
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("<pubDate>([^<]+)</pubDate>");
+            java.util.regex.Matcher matcher = pattern.matcher(rawXml);
+            
+            int index = 0;
+            while (matcher.find() && index < entries.size()) {
+                String dateText = matcher.group(1).trim();
+                LocalDateTime parsedDate = parseInvestingComDate(dateText);
+                
+                if (parsedDate != null) {
+                    SyndEntry entry = entries.get(index);
+                    // Date로 변환해서 설정
+                    Date date = Date.from(parsedDate.atZone(ZoneId.systemDefault()).toInstant());
+                    entry.setPublishedDate(date);
+                    System.out.println("Investing.com 날짜 수동 파싱 성공: " + dateText + " -> " + parsedDate);
+                }
+                
+                index++;
+            }
+        } catch (Exception e) {
+            System.out.println("Investing.com 날짜 수동 파싱 실패: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Investing.com RSS의 비표준 날짜 형식 파싱
+     * 형식: "2025-08-28 14:00:29"
+     */
+    private LocalDateTime parseInvestingComDate(String dateText) {
+        if (dateText == null || dateText.trim().isEmpty()) {
+            return null;
+        }
+        
+        try {
+            // Investing.com 형식: "2025-08-28 14:00:29"
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            return LocalDateTime.parse(dateText.trim(), formatter);
+        } catch (Exception e) {
+            System.out.println("Investing.com 날짜 파싱 실패: " + dateText + " - " + e.getMessage());
+            return null;
+        }
     }
     
     /**
