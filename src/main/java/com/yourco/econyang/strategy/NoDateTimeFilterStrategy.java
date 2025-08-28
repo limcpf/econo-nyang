@@ -32,9 +32,10 @@ public class NoDateTimeFilterStrategy implements RssTimeFilterStrategy {
     
     @Override
     public boolean supports(String rssSourceCode) {
-        return "investing_news".equals(rssSourceCode) ||
-               "investing_market".equals(rssSourceCode) ||
-               "investing_commodities".equals(rssSourceCode) ||
+        return "investing_stock".equals(rssSourceCode) ||
+               "investing_economic".equals(rssSourceCode) ||
+               "investing_finance".equals(rssSourceCode) ||
+               "investing_earnings".equals(rssSourceCode) ||
                "kotra_overseas".equals(rssSourceCode);
     }
     

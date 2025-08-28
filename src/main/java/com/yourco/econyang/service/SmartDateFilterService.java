@@ -171,7 +171,11 @@ public class SmartDateFilterService {
         if (lower.contains("bloomberg")) return "bloomberg_economics";
         if (lower.contains("marketwatch")) return "marketwatch";
         if (lower.contains("매일경제")) return "maeil_securities";
-        if (lower.contains("investing")) return "investing_news";
+        if (lower.contains("investing.com 주식시장")) return "investing_stock";
+        if (lower.contains("investing.com 경제지표")) return "investing_economic";
+        if (lower.contains("investing.com 금융뉴스")) return "investing_finance";
+        if (lower.contains("investing.com 실적보고")) return "investing_earnings";
+        if (lower.contains("investing")) return "investing_stock"; // 기본 fallback
         if (lower.contains("bbc")) return "bbc_business";
         
         return sourceName.toLowerCase().replaceAll("[\\s-]", "_");

@@ -91,7 +91,8 @@ public class RssTimeFilterStrategyFactory {
         // 현재 설정된 RSS 소스들 (application.yml에서 가져와야 하지만 여기서는 하드코딩)
         String[] rssSources = {
             "bbc_business", "ft_companies", "marketwatch", "bloomberg_economics", "economist",
-            "investing_news", "investing_market", "investing_commodities", "kotra_overseas", "maeil_securities"
+            "investing_stock", "investing_economic", "investing_finance", "investing_earnings", 
+            "kotra_overseas", "maeil_securities"
         };
         
         for (String sourceCode : rssSources) {
