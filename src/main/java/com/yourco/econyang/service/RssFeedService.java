@@ -61,6 +61,17 @@ public class RssFeedService {
         
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
+                // Investing.com은 첫 시도 전에 랜덤 지연 추가
+                if (source.getCode().startsWith("investing_")) {
+                    int randomDelay = 1000 + (int)(Math.random() * 2000); // 1-3초 랜덤 지연
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(randomDelay);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                
                 SyndFeed feed = fetchFeed(source);
                 articles = parseFeed(feed, source);
                 break; // 성공 시 루프 종료
@@ -71,7 +82,10 @@ public class RssFeedService {
                 
                 if (attempt < maxRetries) {
                     try {
-                        TimeUnit.MILLISECONDS.sleep(retryDelayMs * attempt);
+                        // Investing.com은 더 긴 재시도 지연
+                        int delay = source.getCode().startsWith("investing_") ? 
+                                   retryDelayMs * attempt * 2 : retryDelayMs * attempt;
+                        TimeUnit.MILLISECONDS.sleep(delay);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         break;
@@ -164,10 +178,27 @@ public class RssFeedService {
         connection.setConnectTimeout(connectTimeoutMs);
         connection.setReadTimeout(readTimeoutMs);
         
-        // User-Agent 설정 (config에서 읽기)
-        String userAgent = rssSourcesConfig.getCollection().getUserAgent();
+        // User-Agent 설정 (Investing.com 특별 처리)
+        String userAgent;
+        if (source.getCode().startsWith("investing_")) {
+            // Investing.com용 일반적인 브라우저 User-Agent
+            userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+            connection.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+            connection.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9,en;q=0.8");
+            connection.setRequestProperty("Accept-Encoding", "gzip, deflate, br");
+            connection.setRequestProperty("DNT", "1");
+            connection.setRequestProperty("Connection", "keep-alive");
+            connection.setRequestProperty("Upgrade-Insecure-Requests", "1");
+            connection.setRequestProperty("Sec-Fetch-Dest", "document");
+            connection.setRequestProperty("Sec-Fetch-Mode", "navigate");
+            connection.setRequestProperty("Sec-Fetch-Site", "none");
+            connection.setRequestProperty("Cache-Control", "max-age=0");
+        } else {
+            // 다른 소스는 기본 User-Agent
+            userAgent = rssSourcesConfig.getCollection().getUserAgent();
+            connection.setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml");
+        }
         connection.setRequestProperty("User-Agent", userAgent);
-        connection.setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml");
         
         // XML 원본을 바이트 배열로 읽어서 파일 저장과 파싱에 모두 사용
         byte[] xmlData;

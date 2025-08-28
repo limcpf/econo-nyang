@@ -89,32 +89,32 @@ sources:
     url: "https://kr.investing.com/rss/news_25.rss"
     weight: 1.0
     enabled: true
-    timeout: 15000
-    retryCount: 3
+    timeout: 30000
+    retryCount: 5
     description: "Investing.com 주식 시장 뉴스 RSS"
   - name: "Investing.com 경제지표"
     code: "investing_economic"
     url: "https://kr.investing.com/rss/news_95.rss"
     weight: 1.1
     enabled: true
-    timeout: 15000
-    retryCount: 3
+    timeout: 30000
+    retryCount: 5
     description: "Investing.com 경제 지표 뉴스 RSS"
   - name: "Investing.com 금융뉴스"
     code: "investing_finance"
     url: "https://kr.investing.com/rss/news_477.rss"
     weight: 1.0
     enabled: true
-    timeout: 15000
-    retryCount: 3
+    timeout: 30000
+    retryCount: 5
     description: "Investing.com 최신 금융 뉴스 RSS"
   - name: "Investing.com 실적보고"
     code: "investing_earnings"
     url: "https://kr.investing.com/rss/news_1062.rss"
     weight: 0.9
     enabled: true
-    timeout: 15000
-    retryCount: 3
+    timeout: 30000
+    retryCount: 5
     description: "Investing.com 실적 보고서 및 예상 발표일 RSS"
   - name: "KOTRA 해외시장뉴스"
     code: "kotra_overseas"
