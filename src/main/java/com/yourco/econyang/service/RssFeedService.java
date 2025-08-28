@@ -206,6 +206,13 @@ public class RssFeedService {
             xmlData = inputStream.readAllBytes();
         }
         
+        // XML 검증 (HTML이 반환된 경우 감지)
+        String responseText = new String(xmlData, "UTF-8");
+        if (responseText.trim().toLowerCase().startsWith("<!doctype html") || 
+            responseText.trim().toLowerCase().startsWith("<html")) {
+            throw new Exception("HTML 페이지가 반환됨 (RSS 피드 아님): " + source.getUrl());
+        }
+        
         // 원본 RSS XML을 디버그 파일로 저장
         saveRssXmlToFile(source.getCode(), xmlData);
         
