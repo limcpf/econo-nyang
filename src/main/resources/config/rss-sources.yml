@@ -34,25 +34,32 @@ rss:
       category: "경제분석"
       updateIntervalMinutes: 15
       priority: 1
-    - name: "Investing.com News"
-      code: "investing_news"
-      url: "https://www.investing.com/rss/news.rss"
+    - name: "Investing.com 주식시장"
+      code: "investing_stock"
+      url: "https://kr.investing.com/rss/news_25.rss"
       enabled: true
-      category: "투자정보"
+      category: "주식시장"
       updateIntervalMinutes: 15
       priority: 2
-    - name: "Investing.com Market Overview"
-      code: "investing_market"
-      url: "https://www.investing.com/rss/market_overview.rss"
+    - name: "Investing.com 경제지표"
+      code: "investing_economic"
+      url: "https://kr.investing.com/rss/news_95.rss"
       enabled: true
-      category: "시장동향"
+      category: "경제지표"
       updateIntervalMinutes: 15
       priority: 2
-    - name: "Investing.com Commodities"
-      code: "investing_commodities"
-      url: "https://www.investing.com/rss/commodities.rss"
+    - name: "Investing.com 금융뉴스"
+      code: "investing_finance"
+      url: "https://kr.investing.com/rss/news.rss"
       enabled: true
-      category: "원자재"
+      category: "금융뉴스"
+      updateIntervalMinutes: 15
+      priority: 2
+    - name: "Investing.com 실적보고"
+      code: "investing_earnings"
+      url: "https://kr.investing.com/rss/news_1062.rss"
+      enabled: true
+      category: "실적보고"
       updateIntervalMinutes: 30
       priority: 3
     - name: "KOTRA 해외시장뉴스"

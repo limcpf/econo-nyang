@@ -52,35 +52,45 @@ sources:
     retryCount: 2
     description: "The Economist RSS Feed"
     
-  # Investing.com News
-  - name: "Investing.com News"
-    code: "investing_news"
+  # Investing.com 주식시장
+  - name: "Investing.com 주식시장"
+    code: "investing_stock"
+    url: "https://kr.investing.com/rss/news_25.rss"
+    weight: 1.0
+    enabled: true
+    timeout: 30000
+    retryCount: 5
+    description: "Investing.com 주식 시장 뉴스 RSS"
+    
+  # Investing.com 경제지표
+  - name: "Investing.com 경제지표"
+    code: "investing_economic"
+    url: "https://kr.investing.com/rss/news_95.rss"
+    weight: 1.1
+    enabled: true
+    timeout: 30000
+    retryCount: 5
+    description: "Investing.com 경제 지표 뉴스 RSS"
+    
+  # Investing.com 금융뉴스
+  - name: "Investing.com 금융뉴스"
+    code: "investing_finance"
     url: "https://kr.investing.com/rss/news.rss"
-    weight: 1.5
+    weight: 1.0
     enabled: true
-    timeout: 12000
-    retryCount: 3
-    description: "Investing.com Financial News RSS"
+    timeout: 30000
+    retryCount: 5
+    description: "Investing.com 전체 뉴스 RSS"
     
-  # Investing.com Market Overview
-  - name: "Investing.com Market Overview"
-    code: "investing_market"
-    url: "https://kr.investing.com/rss/market_overview.rss"
-    weight: 1.6
+  # Investing.com 실적보고
+  - name: "Investing.com 실적보고"
+    code: "investing_earnings"
+    url: "https://kr.investing.com/rss/news_1062.rss"
+    weight: 0.9
     enabled: true
-    timeout: 12000
-    retryCount: 3
-    description: "Investing.com Market Overview RSS"
-    
-  # Investing.com Commodities
-  - name: "Investing.com Commodities"
-    code: "investing_commodities"
-    url: "https://kr.investing.com/rss/commodities.rss"
-    weight: 0.8
-    enabled: true
-    timeout: 12000
-    retryCount: 3
-    description: "Investing.com Commodities News RSS"
+    timeout: 30000
+    retryCount: 5
+    description: "Investing.com 실적 보고서 및 예상 발표일 RSS"
     
   # KOTRA 해외시장뉴스
   - name: "KOTRA 해외시장뉴스"
