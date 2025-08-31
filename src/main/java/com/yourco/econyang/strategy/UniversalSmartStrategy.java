@@ -51,6 +51,7 @@ public class UniversalSmartStrategy implements SmartDateFilterStrategy {
     public UniversalSmartStrategy() {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
+                .followRedirects(HttpClient.Redirect.ALWAYS)  // 리다이렉트 자동 처리
                 .build();
     }
     
@@ -229,19 +230,30 @@ public class UniversalSmartStrategy implements SmartDateFilterStrategy {
                     .timeout(Duration.ofSeconds(contentScanTimeoutSeconds))
                     .GET();
             
-            // Investing.com URL에 특별한 헤더 설정
+            // 사이트별 특별한 헤더 설정
             if (url.contains("investing.com")) {
                 requestBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
                             .header("Accept-Language", "ko-KR,ko;q=0.9,en;q=0.8")
                             .header("Accept-Encoding", "gzip, deflate, br")
                             .header("DNT", "1")
-                            .header("Connection", "keep-alive")
                             .header("Upgrade-Insecure-Requests", "1")
                             .header("Sec-Fetch-Dest", "document")
                             .header("Sec-Fetch-Mode", "navigate")
                             .header("Sec-Fetch-Site", "none")
                             .header("Cache-Control", "max-age=0");
+            } else if (url.contains("kotra.or.kr")) {
+                // KOTRA 전용 헤더 설정 (리다이렉트 처리 개선)
+                requestBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+                            .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+                            .header("Accept-Encoding", "gzip, deflate, br")
+                            .header("Upgrade-Insecure-Requests", "1")
+                            .header("Sec-Fetch-Dest", "document")
+                            .header("Sec-Fetch-Mode", "navigate")
+                            .header("Sec-Fetch-Site", "none")
+                            .header("Cache-Control", "no-cache")
+                            .header("Pragma", "no-cache");
             } else {
                 requestBuilder.header("User-Agent", "EconDigest-SmartFilter/1.0");
             }
