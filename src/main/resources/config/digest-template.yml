@@ -90,6 +90,129 @@ digest:
         
         🤖 Made with ❤️ by EconDigest AI
         
+    # 깔끔하고 가독성 좋은 템플릿
+    clean:
+      title: "📊 경제뉴스 일일브리핑"
+      subtitle: "핵심만 간추린 오늘의 경제소식"
+      
+      # 깔끔한 헤더
+      header: |
+        # 📊 {{date}} 경제뉴스 브리핑
+        
+        > 💡 **오늘의 핵심**: {{totalArticles}}개 중요 뉴스를 5분 안에 확인하세요
+        
+        📌 **분석 기준**: 중요도 {{minImportance}}점 이상 | 🤖 **AI 큐레이션** 
+        
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+      # 깔끔한 섹션 헤더
+      sectionHeaders:
+        topNews: "🔥 **핵심 뉴스**"
+        marketNews: "📈 **증시/투자**" 
+        policyNews: "🏛️ **정책/금융**"
+        realEstateNews: "🏠 **부동산**"
+        globalNews: "🌍 **글로벌**"
+        corporateNews: "🏢 **기업동향**"
+        techNews: "💻 **테크/IT**"
+        otherNews: "📰 **기타**"
+      
+      # 깔끔한 기사 템플릿
+      articleItem: |
+        ## {{importance}}. {{title}}
+        
+        **{{source}}** • {{publishedTime}} • 중요도 {{importanceScore}}/10
+        
+        ### 📝 요약
+        {{#aiSummaryFormatted}}
+        • {{this}}
+        {{/aiSummaryFormatted}}
+        
+        {{#if aiAnalysisFormatted}}
+        ### 🔍 분석포인트
+        {{#aiAnalysisFormatted}}
+        ▸ {{this}}
+        {{/aiAnalysisFormatted}}
+        {{/if}}
+        
+        {{#if economicSectors}}
+        **관련분야**: {{economicSectors}} | **키워드**: `{{keywords}}`
+        {{/if}}
+        
+        [📖 원문보기]({{url}})
+        
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+      # 깔끔한 푸터
+      footer: |
+        
+        ## 📊 브리핑 통계
+        
+        | 항목 | 수치 |
+        |------|------|
+        | 📰 수집 뉴스 | {{totalCollected}}개 |
+        | ✅ 분석 완료 | {{totalAnalyzed}}개 |
+        | ⭐ 평균 중요도 | {{avgImportance}}/10 |
+        | 📈 긍정 영향 | {{positiveNews}}개 |
+        | 📉 부정 영향 | {{negativeNews}}개 |
+        | 🤖 분석 신뢰도 | {{avgConfidence}}/10 |
+        
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+        💡 **투자참고**: 본 브리핑은 정보제공 목적이며, 투자결정은 개인 판단하에 이루어져야 합니다.
+        
+        📅 **다음 브리핑**: {{nextDigestTime}} | 🤖 **EconDigest AI**
+        
+    # 모바일 최적화 템플릿  
+    mobile:
+      title: "📱 모바일 경제뉴스"
+      subtitle: "스마트폰에 최적화된 간편 브리핑"
+      
+      # 모바일 친화적 헤더
+      header: |
+        📱 **{{date}} 경제브리핑**
+        
+        오늘의 중요 뉴스 {{totalArticles}}개
+        ⏱️ 읽기시간 3분 | 📊 중요도 {{minImportance}}점+
+        
+        ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+        
+      # 모바일 섹션 헤더 (짧게)
+      sectionHeaders:
+        topNews: "🔥 **핵심**"
+        marketNews: "📈 **증시**"
+        policyNews: "🏛️ **정책**" 
+        realEstateNews: "🏠 **부동산**"
+        globalNews: "🌍 **해외**"
+        corporateNews: "🏢 **기업**"
+        techNews: "💻 **테크**"
+        otherNews: "📰 **기타**"
+      
+      # 모바일 기사 템플릿 (간결하게)
+      articleItem: |
+        **{{importance}}. {{title}}**
+        {{source}} | {{publishedTime}}
+        
+        {{#aiSummaryFormatted}}
+        • {{this}}
+        {{/aiSummaryFormatted}}
+        
+        {{#if keywords}}
+        🏷️ {{keywords}}
+        {{/if}}
+        
+        [원문📖]({{url}}) • 중요도 {{importanceScore}}/10
+        
+        ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+        
+      # 모바일 푸터 (간결하게)
+      footer: |
+        
+        **📊 오늘 통계**
+        수집 {{totalCollected}} | 분석 {{totalAnalyzed}} | 평균중요도 {{avgImportance}}/10
+        
+        💡 투자참고용 • 📅 다음: {{nextDigestTime}}
+        🤖 EconDigest AI
+        
     # 친근한 설명형 다이제스트 템플릿
     friendly:
       title: "💡 쉽게 읽는 경제뉴스"
