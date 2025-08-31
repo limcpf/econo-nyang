@@ -415,7 +415,14 @@ public class RssFeedService {
                     // Date로 변환해서 설정
                     Date date = Date.from(parsedDate.atZone(ZoneId.systemDefault()).toInstant());
                     entry.setPublishedDate(date);
-                    System.out.println("Investing.com 날짜 수동 파싱 성공: " + dateText + " -> " + parsedDate);
+                    
+                    // 현재 시간과 비교 로그 추가
+                    LocalDateTime now = LocalDateTime.now();
+                    long hoursAgo = java.time.Duration.between(parsedDate, now).toHours();
+                    System.out.println(String.format(
+                        "Investing.com 날짜 파싱: %s -> %s (현재 시간: %s, %d시간 전)",
+                        dateText, parsedDate, now, hoursAgo
+                    ));
                 }
                 
                 index++;
@@ -435,9 +442,23 @@ public class RssFeedService {
         }
         
         try {
-            // Investing.com 형식: "2025-08-28 14:00:29"
+            // Investing.com 형식: "2025-08-28 14:00:29"  
+            // kr.investing.com이므로 한국 시간(Asia/Seoul)으로 가정
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            return LocalDateTime.parse(dateText.trim(), formatter);
+            LocalDateTime parsedDateTime = LocalDateTime.parse(dateText.trim(), formatter);
+            
+            // 한국 시간으로 파싱된 것을 시스템 기본 시간대로 변환
+            ZoneId koreaZone = ZoneId.of("Asia/Seoul");
+            ZoneId systemZone = ZoneId.systemDefault();
+            
+            if (!koreaZone.equals(systemZone)) {
+                // 한국 시간 -> UTC -> 시스템 시간대 순으로 변환
+                return parsedDateTime.atZone(koreaZone)
+                    .withZoneSameInstant(systemZone)
+                    .toLocalDateTime();
+            } else {
+                return parsedDateTime;
+            }
         } catch (Exception e) {
             System.out.println("Investing.com 날짜 파싱 실패: " + dateText + " - " + e.getMessage());
             return null;
