@@ -443,22 +443,22 @@ public class RssFeedService {
         
         try {
             // Investing.com 형식: "2025-08-28 14:00:29"  
-            // kr.investing.com이므로 한국 시간(Asia/Seoul)으로 가정
+            // UTC로 파싱한 후 KST(한국 시간)로 변환
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             LocalDateTime parsedDateTime = LocalDateTime.parse(dateText.trim(), formatter);
             
-            // 한국 시간으로 파싱된 것을 시스템 기본 시간대로 변환
-            ZoneId koreaZone = ZoneId.of("Asia/Seoul");
-            ZoneId systemZone = ZoneId.systemDefault();
+            // UTC로 파싱된 것으로 간주하고 KST로 변환
+            ZoneId utcZone = ZoneId.of("UTC");
+            ZoneId kstZone = ZoneId.of("Asia/Seoul");
             
-            if (!koreaZone.equals(systemZone)) {
-                // 한국 시간 -> UTC -> 시스템 시간대 순으로 변환
-                return parsedDateTime.atZone(koreaZone)
-                    .withZoneSameInstant(systemZone)
-                    .toLocalDateTime();
-            } else {
-                return parsedDateTime;
-            }
+            // UTC -> KST 변환 (UTC + 9시간)
+            LocalDateTime kstDateTime = parsedDateTime.atZone(utcZone)
+                .withZoneSameInstant(kstZone)
+                .toLocalDateTime();
+            
+            // UTC -> KST 변환 완료
+            
+            return kstDateTime;
         } catch (Exception e) {
             System.out.println("Investing.com 날짜 파싱 실패: " + dateText + " - " + e.getMessage());
             return null;
