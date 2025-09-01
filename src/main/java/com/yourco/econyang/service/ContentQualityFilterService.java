@@ -32,7 +32,7 @@ public class ContentQualityFilterService {
         
         // 소셜 미디어
         "follow us", "팔로우", "like us", "좋아요", "share",
-        "공유하기", "twitter", "facebook", "instagram"
+        "공유하기", "twitter", "instagram"
     ));
     
     // 구독/가입 요구 패턴 (정규식)

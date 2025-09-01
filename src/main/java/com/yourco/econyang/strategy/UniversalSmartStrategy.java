@@ -189,6 +189,16 @@ public class UniversalSmartStrategy implements SmartDateFilterStrategy {
             // 콘텐츠 캐시 확인
             String content = contentCache.get(url);
             if (content == null) {
+                // Investing.com 본문 스캔 시 추가 지연 (차단 회피)
+                if (url.contains("investing.com")) {
+                    try {
+                        int delay = 2000 + (int)(Math.random() * 3000); // 2-5초 랜덤 지연
+                        Thread.sleep(delay);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                
                 long fetchStart = performanceMonitor.startTiming("content_fetch");
                 content = fetchContent(url);
                 performanceMonitor.endTiming("content_fetch", fetchStart);
@@ -232,15 +242,22 @@ public class UniversalSmartStrategy implements SmartDateFilterStrategy {
             
             // 사이트별 특별한 헤더 설정
             if (url.contains("investing.com")) {
-                requestBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-                            .header("Accept-Language", "ko-KR,ko;q=0.9,en;q=0.8")
-                            .header("Accept-Encoding", "gzip, deflate, br")
+                // Investing.com 개별 기사 페이지용 강화된 브라우저 스푸핑
+                requestBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+                            .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+                            .header("Accept-Encoding", "gzip, deflate, br, zstd")
+                            .header("Referer", "https://kr.investing.com/")
+                            .header("Origin", "https://kr.investing.com")
                             .header("DNT", "1")
                             .header("Upgrade-Insecure-Requests", "1")
+                            .header("Sec-CH-UA", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"")
+                            .header("Sec-CH-UA-Mobile", "?0")
+                            .header("Sec-CH-UA-Platform", "\"Windows\"")
                             .header("Sec-Fetch-Dest", "document")
                             .header("Sec-Fetch-Mode", "navigate")
-                            .header("Sec-Fetch-Site", "none")
+                            .header("Sec-Fetch-Site", "same-origin")
+                            .header("Sec-Fetch-User", "?1")
                             .header("Cache-Control", "max-age=0");
             } else if (url.contains("kotra.or.kr")) {
                 // KOTRA 전용 헤더 설정 (리다이렉트 처리 개선)
