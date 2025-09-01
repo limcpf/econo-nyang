@@ -1,6 +1,8 @@
 package com.yourco.econyang.service;
 
 import com.yourco.econyang.dto.ArticleDto;
+import com.yourco.econyang.service.OpenAIService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -14,6 +16,9 @@ import java.util.HashSet;
  */
 @Service
 public class EconomicNewsClassifier {
+
+    @Autowired
+    private OpenAIService openAIService;
 
     // 핵심 경제 키워드 (높은 우선순위)
     private static final Set<String> HIGH_PRIORITY_KEYWORDS = Set.of(
@@ -75,6 +80,93 @@ public class EconomicNewsClassifier {
             return new NewsQualityScore(0, "강력 제외 키워드 포함", NewsCategory.EXCLUDED);
         }
         
+        // AI 기반 경제 관련성 분석 시도 (우선순위 2)
+        try {
+            NewsQualityScore aiScore = evaluateWithAI(article);
+            if (aiScore != null) {
+                return aiScore;
+            }
+        } catch (Exception e) {
+            System.out.println("AI 경제 관련성 분석 실패, 키워드 기반으로 폴백: " + e.getMessage());
+        }
+        
+        // 키워드 기반 폴백 분석 (우선순위 3)
+        return evaluateWithKeywords(content);
+    }
+    
+    /**
+     * AI를 사용한 경제 관련성 분석
+     */
+    private NewsQualityScore evaluateWithAI(ArticleDto article) {
+        String prompt = String.format("""
+            다음 뉴스 기사의 경제/금융/투자 관련성을 0-10점으로 평가하고 이유를 설명해주세요.
+            
+            제목: %s
+            내용: %s
+            출처: %s
+            
+            평가 기준:
+            - 8-10점: 핵심 경제뉴스 (주식시장, 거시경제, 중앙은행 정책, GDP, 인플레이션 등)
+            - 5-7점: 일반 경제뉴스 (기업 실적, M&A, IPO, 투자 분석 등)  
+            - 3-4점: 투자 관련 (부동산, REIT, 원자재, 투자 의견 등)
+            - 1-2점: 경제 관련성 낮음
+            - 0점: 비경제 뉴스 (연예, 스포츠, 정치, 사건사고 등)
+            
+            응답 형식: 점수|이유
+            예시: 7|기업 SWOT 분석으로 투자자에게 유용한 경제 정보
+            """, 
+            article.getTitle(),
+            article.getDescription() != null ? article.getDescription() : "내용 없음",
+            article.getSource()
+        );
+        
+        String response = openAIService.generateSimpleResponse(prompt);
+        return parseAIResponse(response);
+    }
+    
+    /**
+     * AI 응답 파싱
+     */
+    private NewsQualityScore parseAIResponse(String response) {
+        try {
+            if (response == null || !response.contains("|")) {
+                return null;
+            }
+            
+            String[] parts = response.split("\\|", 2);
+            int score = Integer.parseInt(parts[0].trim());
+            String reason = parts[1].trim();
+            
+            NewsCategory category = determineAICategory(score);
+            
+            return new NewsQualityScore(score, "AI분석: " + reason, category);
+        } catch (Exception e) {
+            System.out.println("AI 응답 파싱 실패: " + response);
+            return null;
+        }
+    }
+    
+    /**
+     * AI 점수 기반 카테고리 결정
+     */
+    private NewsCategory determineAICategory(int score) {
+        if (score >= 8) {
+            return NewsCategory.HIGH_PRIORITY;
+        } else if (score >= 5) {
+            return NewsCategory.MEDIUM_PRIORITY;  
+        } else if (score >= 3) {
+            return NewsCategory.ALLOWED_INVESTMENT;
+        } else if (score >= 1) {
+            return NewsCategory.LOW_PRIORITY;
+        } else {
+            return NewsCategory.EXCLUDED;
+        }
+    }
+    
+    /**
+     * 키워드 기반 폴백 분석
+     */
+    private NewsQualityScore evaluateWithKeywords(String content) {
         // 핵심 경제 키워드 점수 (우선순위 2)
         int highPriorityScore = countKeywords(content, HIGH_PRIORITY_KEYWORDS) * 3;
         
@@ -90,7 +182,7 @@ public class EconomicNewsClassifier {
         NewsCategory category = determineCategory(totalScore, highPriorityScore, investmentScore);
         String reason = buildReason(highPriorityScore, investmentScore, corporateScore, totalScore);
         
-        return new NewsQualityScore(totalScore, reason, category);
+        return new NewsQualityScore(totalScore, "키워드: " + reason, category);
     }
 
     /**
