@@ -1,7 +1,7 @@
 package com.yourco.econyang.service;
 
 import com.yourco.econyang.dto.ArticleDto;
-import com.yourco.econyang.service.OpenAIService;
+import com.yourco.econyang.openai.service.OpenAiClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +18,7 @@ import java.util.HashSet;
 public class EconomicNewsClassifier {
 
     @Autowired
-    private OpenAIService openAIService;
+    private OpenAiClient openAiClient;
 
     // 핵심 경제 키워드 (높은 우선순위)
     private static final Set<String> HIGH_PRIORITY_KEYWORDS = Set.of(
@@ -98,29 +98,25 @@ public class EconomicNewsClassifier {
      * AI를 사용한 경제 관련성 분석
      */
     private NewsQualityScore evaluateWithAI(ArticleDto article) {
-        String prompt = String.format("""
-            다음 뉴스 기사의 경제/금융/투자 관련성을 0-10점으로 평가하고 이유를 설명해주세요.
-            
-            제목: %s
-            내용: %s
-            출처: %s
-            
-            평가 기준:
-            - 8-10점: 핵심 경제뉴스 (주식시장, 거시경제, 중앙은행 정책, GDP, 인플레이션 등)
-            - 5-7점: 일반 경제뉴스 (기업 실적, M&A, IPO, 투자 분석 등)  
-            - 3-4점: 투자 관련 (부동산, REIT, 원자재, 투자 의견 등)
-            - 1-2점: 경제 관련성 낮음
-            - 0점: 비경제 뉴스 (연예, 스포츠, 정치, 사건사고 등)
-            
-            응답 형식: 점수|이유
-            예시: 7|기업 SWOT 분석으로 투자자에게 유용한 경제 정보
-            """, 
+        String prompt = String.format(
+            "다음 뉴스 기사의 경제/금융/투자 관련성을 0-10점으로 평가하고 이유를 설명해주세요.\n\n" +
+            "제목: %s\n" +
+            "내용: %s\n" +
+            "출처: %s\n\n" +
+            "평가 기준:\n" +
+            "- 8-10점: 핵심 경제뉴스 (주식시장, 거시경제, 중앙은행 정책, GDP, 인플레이션 등)\n" +
+            "- 5-7점: 일반 경제뉴스 (기업 실적, M&A, IPO, 투자 분석 등)\n" +
+            "- 3-4점: 투자 관련 (부동산, REIT, 원자재, 투자 의견 등)\n" +
+            "- 1-2점: 경제 관련성 낮음\n" +
+            "- 0점: 비경제 뉴스 (연예, 스포츠, 정치, 사건사고 등)\n\n" +
+            "응답 형식: 점수|이유\n" +
+            "예시: 7|기업 SWOT 분석으로 투자자에게 유용한 경제 정보", 
             article.getTitle(),
             article.getDescription() != null ? article.getDescription() : "내용 없음",
             article.getSource()
         );
         
-        String response = openAIService.generateSimpleResponse(prompt);
+        String response = openAiClient.generateSimpleSummary(prompt, 100);
         return parseAIResponse(response);
     }
     
