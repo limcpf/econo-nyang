@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -18,6 +20,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -47,11 +50,18 @@ public class UniversalSmartStrategy implements SmartDateFilterStrategy {
     
     private final HttpClient httpClient;
     private final ConcurrentHashMap<String, String> contentCache = new ConcurrentHashMap<>();
+    private final Random random = new Random();
     
     public UniversalSmartStrategy() {
+        // 쿠키 관리자 추가 - 세션 상태 유지
+        CookieManager cookieManager = new CookieManager();
+        cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
+        
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .followRedirects(HttpClient.Redirect.ALWAYS)  // 리다이렉트 자동 처리
+                .connectTimeout(Duration.ofSeconds(15))
+                .followRedirects(HttpClient.Redirect.ALWAYS)
+                .version(HttpClient.Version.HTTP_1_1)
+                .cookieHandler(cookieManager)  // 쿠키 자동 관리
                 .build();
     }
     
@@ -235,31 +245,17 @@ public class UniversalSmartStrategy implements SmartDateFilterStrategy {
      */
     private String fetchContent(String url) {
         try {
+            // Investing.com의 경우 2단계 접근 시도
+            if (url.contains("investing.com")) {
+                return fetchInvestingContent(url);
+            }
+            
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(Duration.ofSeconds(contentScanTimeoutSeconds))
                     .GET();
             
-            // 사이트별 특별한 헤더 설정
-            if (url.contains("investing.com")) {
-                // Investing.com 개별 기사 페이지용 강화된 브라우저 스푸핑
-                requestBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
-                            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
-                            .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
-                            .header("Accept-Encoding", "gzip, deflate, br, zstd")
-                            .header("Referer", "https://kr.investing.com/")
-                            .header("Origin", "https://kr.investing.com")
-                            .header("DNT", "1")
-                            .header("Upgrade-Insecure-Requests", "1")
-                            .header("Sec-CH-UA", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"")
-                            .header("Sec-CH-UA-Mobile", "?0")
-                            .header("Sec-CH-UA-Platform", "\"Windows\"")
-                            .header("Sec-Fetch-Dest", "document")
-                            .header("Sec-Fetch-Mode", "navigate")
-                            .header("Sec-Fetch-Site", "same-origin")
-                            .header("Sec-Fetch-User", "?1")
-                            .header("Cache-Control", "max-age=0");
-            } else if (url.contains("kotra.or.kr")) {
+            if (url.contains("kotra.or.kr")) {
                 // KOTRA 전용 헤더 설정 (리다이렉트 처리 개선)
                 requestBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
@@ -399,5 +395,80 @@ public class UniversalSmartStrategy implements SmartDateFilterStrategy {
     @Override
     public int getAssumedRecentArticleCount(String rssSourceCode) {
         return 5; // Conservative estimate
+    }
+    
+    /**
+     * Investing.com 전용 2단계 접근 방법
+     * 1단계: 메인 페이지 방문으로 세션/쿠키 확보
+     * 2단계: 실제 기사 페이지 접근
+     */
+    private String fetchInvestingContent(String articleUrl) {
+        try {
+            // 1단계: 메인 페이지 방문 (세션 확보)
+            String mainPageUrl = "https://kr.investing.com/";
+            HttpRequest mainRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(mainPageUrl))
+                    .timeout(Duration.ofSeconds(10))
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+                    .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+                    .header("Accept-Encoding", "gzip, deflate, br, zstd")
+                    .header("DNT", "1")
+                    .header("Upgrade-Insecure-Requests", "1")
+                    .header("Sec-CH-UA", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"")
+                    .header("Sec-CH-UA-Mobile", "?0")
+                    .header("Sec-CH-UA-Platform", "\"Windows\"")
+                    .header("Sec-Fetch-Dest", "document")
+                    .header("Sec-Fetch-Mode", "navigate")
+                    .header("Sec-Fetch-Site", "none")
+                    .header("Sec-Fetch-User", "?1")
+                    .GET()
+                    .build();
+            
+            HttpResponse<String> mainResponse = httpClient.send(mainRequest, HttpResponse.BodyHandlers.ofString());
+            if (mainResponse.statusCode() != 200) {
+                System.out.println("메인 페이지 접근 실패: " + mainResponse.statusCode());
+            }
+            
+            // 1-3초 랜덤 지연 (자연스러운 탐색 시뮬레이션)
+            Thread.sleep(1000 + random.nextInt(2000));
+            
+            // 2단계: 실제 기사 페이지 접근
+            HttpRequest.Builder articleRequestBuilder = HttpRequest.newBuilder()
+                    .uri(URI.create(articleUrl))
+                    .timeout(Duration.ofSeconds(contentScanTimeoutSeconds))
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+                    .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+                    .header("Accept-Encoding", "gzip, deflate, br, zstd")
+                    .header("Referer", mainPageUrl)  // 메인 페이지에서 온 것처럼
+                    .header("DNT", "1")
+                    .header("Upgrade-Insecure-Requests", "1")
+                    .header("Sec-CH-UA", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"")
+                    .header("Sec-CH-UA-Mobile", "?0")
+                    .header("Sec-CH-UA-Platform", "\"Windows\"")
+                    .header("Sec-Fetch-Dest", "document")
+                    .header("Sec-Fetch-Mode", "navigate")
+                    .header("Sec-Fetch-Site", "same-origin")
+                    .header("Sec-Fetch-User", "?1")
+                    .GET();
+            
+            HttpRequest articleRequest = articleRequestBuilder.build();
+            HttpResponse<String> articleResponse = httpClient.send(articleRequest, HttpResponse.BodyHandlers.ofString());
+            
+            if (articleResponse.statusCode() == 200) {
+                return articleResponse.body();
+            } else {
+                System.out.println("Investing.com 2단계 접근 실패 - HTTP " + articleResponse.statusCode() + ": " + articleUrl);
+                return null;
+            }
+            
+        } catch (IOException | InterruptedException e) {
+            System.out.println("Investing.com 2단계 접근 실패 - " + e.getMessage() + ": " + articleUrl);
+            return null;
+        } catch (Exception e) {
+            System.out.println("Investing.com 2단계 접근 예외 - " + e.getMessage() + ": " + articleUrl);
+            return null;
+        }
     }
 }
