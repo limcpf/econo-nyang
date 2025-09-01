@@ -28,6 +28,7 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,6 +57,9 @@ public class BatchConfiguration {
 
     @Autowired
     private ContentExtractionService contentExtractionService;
+    
+    @Value("${app.rss.enableContentScan:false}")
+    private boolean enableContentScan;
 
     @Autowired
     private OpenAiClient openAiClient;
@@ -235,7 +239,7 @@ public class BatchConfiguration {
                     
                     int extractedCount = 0;
                     
-                    if ("true".equals(useRealExtraction)) {
+                    if ("true".equals(useRealExtraction) && enableContentScan) {
                         // 실제 본문 추출
                         System.out.println("실제 본문 추출 모드 시작");
                         
@@ -282,7 +286,11 @@ public class BatchConfiguration {
                         }
                     } else {
                         // 더미 본문 설정
-                        System.out.println("더미 본문 추출 모드");
+                        if (!enableContentScan) {
+                            System.out.println("본문 추출 비활성화됨 (enableContentScan=false) - RSS 메타데이터만 사용");
+                        } else {
+                            System.out.println("더미 본문 추출 모드 (useRealExtraction=false)");
+                        }
                         extractedCount = processDummyExtraction(articles);
                     }
                     
