@@ -208,7 +208,7 @@ app:
     maeilMaxAgeHours: ${RSS_MAEIL_MAX_AGE:48}
     noDateMaxArticles: ${RSS_NO_DATE_MAX_ARTICLES:5}
     # 스마트 날짜 필터링 설정 (새로 추가)
-    enableContentScan: ${RSS_ENABLE_CONTENT_SCAN:true}
+    enableContentScan: ${RSS_ENABLE_CONTENT_SCAN:false}
     contentScanTimeout: ${RSS_CONTENT_SCAN_TIMEOUT:10}
     universalMaxAgeHours: ${RSS_UNIVERSAL_MAX_AGE:72}
     
