@@ -63,10 +63,21 @@ public class SummaryService {
             return existingSummary.get();
         }
         
-        // 본문이 충분한 길이인지 확인
+        // 본문과 RSS 메타데이터 확인
         String content = article.getContent();
-        if (content == null || content.length() < minContentLength) {
-            return createFallbackSummary(article, model, "본문이 너무 짧거나 없습니다");
+        boolean hasContent = content != null && content.length() >= minContentLength;
+        boolean hasRssData = (article.getTitle() != null && !article.getTitle().trim().isEmpty()) ||
+                           (article.getRawExcerpt() != null && !article.getRawExcerpt().trim().isEmpty());
+        
+        // 본문도 RSS 데이터도 충분하지 않은 경우만 실패
+        if (!hasContent && !hasRssData) {
+            return createFallbackSummary(article, model, "본문과 RSS 메타데이터 모두 불충분합니다");
+        }
+        
+        // 본문이 없으면 RSS 메타데이터로 AI 추론 요약 시도
+        if (!hasContent && hasRssData) {
+            System.out.println("본문 없음, RSS 메타데이터로 AI 추론 요약 생성: " + article.getUrl());
+            return generateIntelligentInferenceSummary(article, model);
         }
         
         // AI 요약이 비활성화된 경우
@@ -212,6 +223,186 @@ public class SummaryService {
     // === Private Methods ===
     
     /**
+     * RSS 메타데이터로 AI 추론 요약 생성
+     */
+    private Summary generateIntelligentInferenceSummary(Article article, String model) {
+        try {
+            // 전문가 수준 추론 프롬프트 생성
+            String inferencePrompt = createExpertInferencePrompt(article);
+            
+            // OpenAI로 추론 요약 생성 (간단한 응답 사용)
+            String inferenceResult = openAiClient.generateSimpleSummary(inferencePrompt, 500);
+            
+            // 추론 결과를 구조화된 요약으로 변환
+            return parseInferenceResult(article, model, inferenceResult);
+            
+        } catch (Exception e) {
+            System.err.println("AI 추론 요약 실패, 기본 폴백으로 전환: " + article.getUrl() + " - " + e.getMessage());
+            return createFallbackSummary(article, model, "AI 추론 실패: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 전문가 수준 추론을 위한 프롬프트 생성
+     */
+    private String createExpertInferencePrompt(Article article) {
+        StringBuilder prompt = new StringBuilder();
+        
+        prompt.append("당신은 20년 경력의 경제뉴스 전문 애널리스트입니다. ")
+              .append("다음 정보만으로 투자자에게 유용한 상세 분석을 작성하세요.\n\n");
+        
+        // 기사 정보
+        prompt.append("=== 기사 정보 ===\n");
+        prompt.append("제목: ").append(article.getTitle()).append("\n");
+        prompt.append("출처: ").append(article.getSource()).append("\n");
+        
+        if (article.getRawExcerpt() != null && !article.getRawExcerpt().trim().isEmpty()) {
+            prompt.append("RSS 요약: ").append(article.getRawExcerpt()).append("\n");
+        }
+        
+        if (article.getPublishedAt() != null) {
+            prompt.append("발행일: ").append(article.getPublishedAt()).append("\n");
+        }
+        
+        // 출처별 컨텍스트 추가
+        prompt.append("\n=== 출처 특성 ===\n");
+        if (article.getSource().toLowerCase().contains("investing")) {
+            prompt.append("- Investing.com: 투자분석 전문지, SWOT분석/재무분석/투자의견 중심\n");
+            prompt.append("- 주요 독자층: 개인투자자, 기관투자자\n");
+        } else if (article.getSource().toLowerCase().contains("bloomberg")) {
+            prompt.append("- Bloomberg: 글로벌 금융정보 전문지, 거시경제/시장동향 중심\n");
+        } else if (article.getSource().toLowerCase().contains("bbc")) {
+            prompt.append("- BBC Business: 글로벌 관점의 경제뉴스, 정책/트렌드 분석\n");
+        }
+        
+        // 분석 지침
+        prompt.append("\n=== 분석 지침 ===\n");
+        prompt.append("1. 제목에서 핵심 키워드 추출 및 경제적 의미 분석\n");
+        prompt.append("2. 출처 특성을 고려한 기사 내용 추론\n");
+        prompt.append("3. 해당 분야의 일반적 트렌드 및 시장 맥락 반영\n");
+        prompt.append("4. 투자자 관점에서의 중요도 및 영향 평가\n");
+        prompt.append("5. 1-10점 척도로 중요도 점수 부여\n\n");
+        
+        prompt.append("응답 형식:\n");
+        prompt.append("**요약**: (2-3문장으로 핵심 내용 설명)\n");
+        prompt.append("**분석**: (상세 맥락 분석 및 추론)\n");
+        prompt.append("**투자자 관심**: (투자 관점에서의 의미)\n");
+        prompt.append("**중요도**: (1-10점)\n");
+        prompt.append("**키워드**: (관련 키워드 3-5개, 쉼표로 구분)");
+        
+        return prompt.toString();
+    }
+    
+    /**
+     * AI 추론 결과를 Summary 객체로 파싱
+     */
+    private Summary parseInferenceResult(Article article, String model, String inferenceResult) {
+        try {
+            // 기본값 설정
+            String summaryText = "";
+            String analysisText = "";
+            int importanceScore = 5;
+            String keywords = "경제뉴스";
+            
+            // 추론 결과 파싱
+            String[] sections = inferenceResult.split("\\*\\*");
+            for (int i = 0; i < sections.length - 1; i++) {
+                String section = sections[i].trim();
+                String nextSection = sections[i + 1].trim();
+                
+                if (section.endsWith("요약")) {
+                    summaryText = extractContent(nextSection);
+                } else if (section.endsWith("분석")) {
+                    analysisText = extractContent(nextSection);
+                } else if (section.endsWith("중요도")) {
+                    String scoreStr = extractContent(nextSection);
+                    try {
+                        // "8/10" 또는 "8점" 형태에서 숫자 추출
+                        scoreStr = scoreStr.replaceAll("[^0-9]", "");
+                        if (!scoreStr.isEmpty()) {
+                            importanceScore = Math.min(10, Math.max(1, Integer.parseInt(scoreStr)));
+                        }
+                    } catch (NumberFormatException e) {
+                        // 파싱 실패 시 기본값 사용
+                    }
+                } else if (section.endsWith("키워드")) {
+                    keywords = extractContent(nextSection);
+                }
+            }
+            
+            // Summary 객체 생성
+            Summary summary = new Summary(article, model, summaryText, analysisText);
+            summary.setScore(BigDecimal.valueOf(importanceScore));
+            
+            // 키워드 설정
+            String[] keywordArray = keywords.split("[,，]");
+            List<String> keywordList = new java.util.ArrayList<>();
+            for (String keyword : keywordArray) {
+                String cleanKeyword = keyword.trim();
+                if (!cleanKeyword.isEmpty()) {
+                    keywordList.add(cleanKeyword);
+                }
+            }
+            if (!keywordList.isEmpty()) {
+                summary.setBulletsList(keywordList);
+            } else {
+                summary.setBulletsList(java.util.Arrays.asList("경제뉴스"));
+            }
+            
+            // 추가 메타데이터
+            List<java.util.Map<String, String>> glossary = new java.util.ArrayList<>();
+            java.util.Map<String, String> methodEntry = new java.util.HashMap<>();
+            methodEntry.put("term", "생성방법");
+            methodEntry.put("definition", "AI 추론 분석 (RSS 메타데이터 기반)");
+            glossary.add(methodEntry);
+            summary.setGlossary(glossary);
+            
+            System.out.println("AI 추론 요약 성공: " + article.getUrl() + " (점수: " + importanceScore + ")");
+            return summary;
+            
+        } catch (Exception e) {
+            System.err.println("AI 추론 결과 파싱 실패: " + e.getMessage());
+            return createBasicInferenceSummary(article, model, inferenceResult);
+        }
+    }
+    
+    /**
+     * 섹션에서 실제 내용 추출 (다음 섹션 시작 전까지)
+     */
+    private String extractContent(String section) {
+        String[] lines = section.split("\n");
+        if (lines.length > 0) {
+            // 첫 번째 라인에서 콜론 이후 내용 또는 전체 내용
+            String firstLine = lines[0];
+            int colonIndex = firstLine.indexOf(":");
+            if (colonIndex != -1 && colonIndex < firstLine.length() - 1) {
+                return firstLine.substring(colonIndex + 1).trim();
+            } else {
+                return firstLine.trim();
+            }
+        }
+        return section.trim();
+    }
+    
+    /**
+     * 파싱 실패 시 기본 추론 요약 생성
+     */
+    private Summary createBasicInferenceSummary(Article article, String model, String inferenceResult) {
+        String summaryText = "제목: " + article.getTitle();
+        if (article.getRawExcerpt() != null) {
+            summaryText += " | " + article.getRawExcerpt();
+        }
+        
+        String analysisText = "AI 추론 분석 결과:\n" + inferenceResult;
+        
+        Summary summary = new Summary(article, model, summaryText, analysisText);
+        summary.setScore(BigDecimal.valueOf(5)); // 기본 점수
+        summary.setBulletsList(extractKeywordsFromTitle(article.getTitle()));
+        
+        return summary;
+    }
+    
+    /**
      * EconomicSummaryResponse를 Summary 엔티티로 변환
      */
     private Summary convertToSummary(Article article, String model, EconomicSummaryResponse aiResponse) {
@@ -288,10 +479,20 @@ public class SummaryService {
     private Summary createFallbackSummary(Article article, String model, String errorMessage) {
         // 기본 요약 생성 (제목과 설명 기반)
         String fallbackSummary = generateBasicSummary(article);
-        String fallbackAnalysis = "자동 분석이 불가능하여 기본 정보로 대체되었습니다. 오류: " + errorMessage;
+        String fallbackAnalysis;
+        BigDecimal score;
+        
+        // RSS 메타데이터 기반인 경우 더 높은 점수 부여
+        if (errorMessage.contains("RSS 메타데이터")) {
+            fallbackAnalysis = "RSS 피드의 제목과 요약 정보를 기반으로 생성된 요약입니다.";
+            score = BigDecimal.valueOf(5); // 보통 점수
+        } else {
+            fallbackAnalysis = "자동 분석이 불가능하여 기본 정보로 대체되었습니다. 오류: " + errorMessage;
+            score = BigDecimal.valueOf(3); // 낮은 점수
+        }
         
         Summary summary = new Summary(article, model, fallbackSummary, fallbackAnalysis);
-        summary.setScore(BigDecimal.valueOf(3)); // 낮은 점수 (폴백이므로)
+        summary.setScore(score);
         
         // 기본 키워드 설정 (제목에서 추출)
         List<String> basicKeywords = extractKeywordsFromTitle(article.getTitle());
