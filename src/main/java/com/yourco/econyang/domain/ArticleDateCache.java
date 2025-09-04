@@ -1,6 +1,7 @@
 package com.yourco.econyang.domain;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 /**
@@ -15,7 +16,8 @@ import java.time.LocalDateTime;
            @Index(name = "idx_extraction_method", columnList = "extraction_method")
        })
 public class ArticleDateCache {
-    
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -68,7 +70,7 @@ public class ArticleDateCache {
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    
+
     public String getUrlHash() { return urlHash; }
     public void setUrlHash(String urlHash) { this.urlHash = urlHash; }
     

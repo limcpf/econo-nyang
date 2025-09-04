@@ -226,7 +226,7 @@ app:
   digest:
     sendAt: "07:30"
     maxArticles: 10
-    minImportanceScore: 5
+    minImportanceScore: 3
     templateName: "default"
     format: "markdown"
     
