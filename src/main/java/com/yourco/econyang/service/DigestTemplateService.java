@@ -55,19 +55,7 @@ public class DigestTemplateService {
         // 통계 정보 계산
         DigestStats stats = calculateStats(summaries);
         
-        // 템플릿 변수 맵 생성
-        Map<String, Object> variables = buildTemplateVariables(summaries, stats);
-        
-        // 마크다운 생성
-        StringBuilder digest = new StringBuilder();
-        
-        // 헤더 추가
-        if (template.getHeader() != null) {
-            digest.append(replaceVariables(template.getHeader(), variables));
-            digest.append("\n\n");
-        }
-        
-        // 기사 목록 추가 (중요도순 정렬)
+        // 중요도순 정렬된 목록 준비 (헤드라인/링크용에도 사용)
         List<Summary> sortedSummaries = summaries.stream()
                 .sorted((s1, s2) -> {
                     // score가 없으면 0으로 처리
@@ -77,6 +65,36 @@ public class DigestTemplateService {
                 })
                 .collect(Collectors.toList());
         
+        // 템플릿 변수 맵 생성
+        Map<String, Object> variables = buildTemplateVariables(summaries, stats);
+        
+        // 헤드라인 및 링크 목록 구성 (템플릿에서 루프 처리 가능하도록)
+        List<String> headlineList = new ArrayList<>();
+        List<Map<String, String>> linkList = new ArrayList<>();
+        for (int i = 0; i < sortedSummaries.size(); i++) {
+            Summary s = sortedSummaries.get(i);
+            Article a = s.getArticle();
+            String title = a != null && a.getTitle() != null ? a.getTitle() : "제목 없음";
+            String url = a != null ? a.getUrl() : null;
+            int index = i + 1;
+            headlineList.add(index + ". " + title);
+            Map<String, String> linkItem = new HashMap<>();
+            linkItem.put("index", String.valueOf(index));
+            linkItem.put("title", title);
+            linkItem.put("url", url != null ? url : "");
+            linkList.add(linkItem);
+        }
+        variables.put("headlines", headlineList);
+        variables.put("links", linkList);
+        
+        // 마크다운 생성
+        StringBuilder digest = new StringBuilder();
+        
+        // 헤더 추가
+        if (template.getHeader() != null) {
+            digest.append(replaceVariables(template.getHeader(), variables));
+            digest.append("\n");
+        }
         for (int i = 0; i < sortedSummaries.size(); i++) {
             Summary summary = sortedSummaries.get(i);
             
